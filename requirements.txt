@@ -1,0 +1,37 @@
+# ============================================================
+# QuantBet Core Engine — Fase 1: Entorno de Modelado Predictivo
+# Stack: Scraping/APIs -> Data Wrangling -> Stats/Monte Carlo -> ML
+# Sin pines de versión exacta: pip resuelve compatibilidad con Python 3.14
+# ============================================================
+
+# --- 1. Extracción de Datos (Scraping / APIs) ---
+requests
+beautifulsoup4
+lxml
+selenium
+webdriver-manager
+
+# --- 2. Manipulación y Almacenamiento de Datos ---
+pandas
+numpy
+openpyxl
+pyarrow
+
+# --- 3. Estadística y Simulación (Monte Carlo, Bayesian) ---
+scipy
+statsmodels
+
+# --- 4. Machine Learning ---
+scikit-learn
+xgboost
+lightgbm
+
+# --- 5. Visualización (EDA / debugging de modelos) ---
+matplotlib
+seaborn
+
+# --- 6. Entorno, Configuración y Utilidades ---
+python-dotenv
+tqdm
+jupyter
+ipykernel

@@ -1,0 +1,16 @@
+# Entorno virtual
+venv/
+
+# Cache de Python
+__pycache__/
+*.pyc
+
+# Datos (se regeneran corriendo los módulos de ingesta/limpieza)
+data/raw/
+data/processed/
+
+# Variables de entorno / API keys (futuro)
+.env
+
+# Jupyter
+.ipynb_checkpoints/
