@@ -25,8 +25,11 @@ import pandas as pd
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 from config.settings import PROCESSED_DATA_DIR, SEASONS
-from src.models.poisson_model_v2 import build_long_format_v2, fit_poisson_model_v2, predict_dataframe_v2
+from src.models.poisson_model_v2 import (
+    build_long_format_v2, fit_poisson_model_v2, predict_dataframe_v2, DEFAULT_HALF_LIFE_DAYS,
+)
 from src.models.blending import brier_score_multiclass, compute_blend_weight, blend_probabilities
+from src.tracking.run_logger import log_run
 
 MARKET_COLS = ["pinnacle_close_prob_home", "pinnacle_close_prob_draw", "pinnacle_close_prob_away"]
 MODEL_COLS = ["model_prob_home", "model_prob_draw", "model_prob_away"]
@@ -102,6 +105,26 @@ def run():
     out_path = PROCESSED_DATA_DIR / "EPL" / "model_predictions_oos_walkforward_v2.csv"
     oos_df.to_csv(out_path, index=False)
     print(f"\nGuardado -> {out_path}")
+
+    log_run(
+        script="backtest_v2.py",
+        model_name="poisson",
+        model_version="v2",
+        data_paths=[PROCESSED_DATA_DIR / "EPL" / "matches_clean.csv"],
+        features="goals ~ is_home + C(team) + C(opponent) [+ filas sinteticas PROMOTED_TEAM], freq_weights=decaimiento exponencial por recencia",
+        hyperparameters={"half_life_days": DEFAULT_HALF_LIFE_DAYS},
+        metrics={
+            "n_total": n_total,
+            "n_market": n_market,
+            "model_brier": model_brier,
+            "market_brier": market_brier,
+            "market_weight": market_weight,
+            "blend_brier": blend_brier,
+            "gap_vs_mercado": blend_brier - market_brier,
+        },
+        predictions_path=out_path,
+        notes="Walk-forward v2: recencia (time-decay) + rating PROMOTED_TEAM en vez de excluir ascendidos. Cero exclusiones por equipo desconocido.",
+    )
 
 
 if __name__ == "__main__":

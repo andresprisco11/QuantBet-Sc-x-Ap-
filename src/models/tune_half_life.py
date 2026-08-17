@@ -20,6 +20,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 from config.settings import PROCESSED_DATA_DIR, SEASONS
 from src.models.poisson_model_v2 import build_long_format_v2, fit_poisson_model_v2, predict_dataframe_v2
 from src.models.blending import brier_score_multiclass, compute_blend_weight, blend_probabilities
+from src.tracking.run_logger import log_run
 
 MARKET_COLS = ["pinnacle_close_prob_home", "pinnacle_close_prob_draw", "pinnacle_close_prob_away"]
 MODEL_COLS = ["model_prob_home", "model_prob_draw", "model_prob_away"]
@@ -84,6 +85,7 @@ def run_walkforward(df: pd.DataFrame, half_life_days: float) -> dict:
 def run():
     df = pd.read_csv(PROCESSED_DATA_DIR / "EPL" / "matches_clean.csv")
     df["season"] = df["season"].astype(str)
+    data_paths = [PROCESSED_DATA_DIR / "EPL" / "matches_clean.csv"]
 
     results = []
     for hl in HALF_LIFE_CANDIDATES:
@@ -92,6 +94,21 @@ def run():
         results.append(result)
         print(f"  -> modelo {result['model_brier']:.4f} | mercado {result['market_brier']:.4f} | "
               f"blend {result['blend_brier']:.4f} | gap vs mercado {result['gap_vs_mercado']:+.4f}")
+
+        # Cada candidato de half-life es su propia corrida -- se registra
+        # individualmente, no solo el resumen final, para poder reconstruir
+        # exactamente que se probo y con que resultado.
+        log_run(
+            script="tune_half_life.py",
+            model_name="poisson",
+            model_version="v2",
+            data_paths=data_paths,
+            features="goals ~ is_home + C(team) + C(opponent) [+ filas sinteticas PROMOTED_TEAM], freq_weights=decaimiento exponencial por recencia",
+            hyperparameters={"half_life_days": hl},
+            metrics=result,
+            predictions_path=None,
+            notes="Parte del barrido de half-life (200/456/700). Ver half_life_tuning_results.csv para la comparativa completa.",
+        )
 
     results_df = pd.DataFrame(results)
     print("\n=== Comparacion de half-life ===")
