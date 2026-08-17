@@ -23,7 +23,7 @@ LEAGUES = {
 }
 
 # --- Temporadas a descargar (formato football-data.co.uk: "2324" = 2023-24) ---
-SEASONS = ["2021", "2122", "2223", "2324", "2425"]
+SEASONS = ["2021", "2122", "2223", "2324", "2425", "2526", "2627"]
 
 # --- Casas de apuestas prioritarias para cálculo de CLV ---
 # Pinnacle (PS) es el estándar de referencia por su bajo margen (sharp book)
