@@ -8,22 +8,42 @@ dominando con 18 tiros al arco, o ganar 1-0 de rebote con 2. Los tiros al
 arco son un proxy de "calidad subyacente" con menos ruido que el resultado
 final (equivalente pobre de un xG propio, sin necesitar datos de pago).
 
-Este script agrega DOS columnas nuevas a matches_clean.csv:
-  - home_recent_st_diff: promedio movil de (tiros al arco a favor - en contra)
-    del equipo LOCAL en sus ultimos N partidos ANTERIORES a este.
-  - away_recent_st_diff: lo mismo para el equipo VISITANTE.
+Este script agrega SEIS columnas nuevas a matches_clean.csv, todas basadas
+en promedios moviles de los ultimos N=5 partidos ANTERIORES a cada fila
+(shift(1) antes del rolling -- cero fuga de informacion). Prior neutro
+(0.0) para el primer partido de un equipo en todo el dataset:
 
-SIN FUGA DE INFORMACION: para el partido que se juega el dia X, el promedio
-solo usa partidos con fecha ESTRICTAMENTE anterior a X (shift(1) antes del
-rolling). Para el primer partido de un equipo en todo el dataset (sin
-historial previo alguno), el valor queda en 0.0 -- un prior neutro, mismo
-criterio que ya usamos con PROMOTED_TEAM en poisson_model_v2.py.
+  v4 (diferencial neto, usado en poisson_model_v4.py -- se mantiene por
+  compatibilidad/referencia, aunque v5 en adelante usa la version separada):
+    - home_recent_st_diff / away_recent_st_diff
+
+  v5 (ataque y defensa SEPARADOS -- ver poisson_model_v5.py):
+    - home_recent_attack / home_recent_defense: tiros al arco que el
+      equipo LOCAL genero / concedio en sus ultimos 5 partidos (jugara
+      donde jugara en esos partidos anteriores).
+    - away_recent_attack / away_recent_defense: lo mismo para el
+      equipo VISITANTE.
+
+  Por que separar ataque de defensa: el diferencial neto (v4) no distingue
+  si un equipo rinde mal porque su ataque esta flojo o porque su defensa
+  esta regalando tiros -- son dos cosas distintas que un adversario
+  responde de forma distinta. Separarlas le da al modelo la capacidad de
+  aprender un coeficiente distinto para cada una, en vez de forzar un solo
+  numero neto.
 
 Se corre UNA VEZ sobre el dataset completo (no por fold de walk-forward):
 la forma reciente de un equipo en una fecha dada es un hecho historico fijo,
-no depende de que version del modelo lo vaya a usar despues. Es idempotente
--- correrlo de nuevo simplemente recalcula y sobreescribe las mismas dos
-columnas, no duplica nada.
+no depende de que version del modelo lo vaya a usar despues.
+
+IDEMPOTENTE DE VERDAD: si matches_clean.csv ya tiene alguna de estas 6
+columnas de una corrida anterior (por ejemplo, la version vieja de este
+mismo script que solo generaba las 2 de v4), se descartan ANTES de
+recalcular -- si no, pandas .merge() encuentra nombres de columna
+duplicados y los renombra a "..._x"/"..._y" en vez de sobreescribirlos,
+rompiendo todo el resto de la funcion con un KeyError silencioso mas
+adelante. (Bug real que aparecio la primera vez que se corrio esta
+version sobre un CSV ya enriquecido por la version anterior -- corregido
+aca.)
 
 IMPORTANTE: hay que volver a correr este script cada vez que se regenere
 matches_clean.csv desde cero (por ejemplo, despues de agregar una temporada
@@ -41,14 +61,15 @@ from config.settings import PROCESSED_DATA_DIR
 ROLLING_WINDOW = 5
 STAT_FOR_COL = "HST"   # tiros al arco del local, tal cual viene de football-data.co.uk
 STAT_AGAINST_COL = "AST"  # tiros al arco del visitante
-FEATURE_NAME = "recent_st_diff"
+FEATURE_COLS = ["recent_st_diff", "recent_attack", "recent_defense"]
+GENERATED_COLS = [f"{side}_{c}" for side in ("home", "away") for c in FEATURE_COLS]
 
 
 def add_recent_form_features(df: pd.DataFrame, window: int = ROLLING_WINDOW) -> pd.DataFrame:
     """
-    Agrega home_recent_st_diff / away_recent_st_diff a df. No modifica ninguna
-    columna existente. Requiere que df tenga HST y AST (football-data.co.uk
-    las trae para EPL desde hace muchas temporadas, pero se valida igual).
+    Agrega las 6 columnas descritas arriba a df. Requiere que df tenga HST
+    y AST (football-data.co.uk las trae para EPL desde hace muchas
+    temporadas, pero se valida igual).
     """
     missing = [c for c in [STAT_FOR_COL, STAT_AGAINST_COL] if c not in df.columns]
     if missing:
@@ -59,37 +80,50 @@ def add_recent_form_features(df: pd.DataFrame, window: int = ROLLING_WINDOW) -> 
         )
 
     df = df.copy()
+    # Idempotencia real: si ya existen (de una corrida anterior, con esta
+    # version del script o una vieja), se descartan antes de recalcular --
+    # ver nota en el docstring del modulo sobre el bug que esto evita.
+    df = df.drop(columns=[c for c in GENERATED_COLS if c in df.columns])
+
     df["Date"] = pd.to_datetime(df["Date"])
     df = df.reset_index(drop=True)
     df["match_id"] = df.index
 
-    # Vista "larga" (una fila por equipo por partido, en vez de una fila por
-    # partido) -- necesaria para poder agrupar por equipo y calcular su
-    # promedio movil cronologico, sin importar si jugo de local o visitante.
+    # Vista "larga" (una fila por equipo por partido) -- necesaria para
+    # agrupar por equipo y calcular sus promedios moviles cronologicos, sin
+    # importar si jugo de local o visitante en cada partido anterior.
+    # stat_for/stat_against se guardan SEPARADOS (no solo la diferencia)
+    # para poder construir tanto v4 (diferencial neto) como v5 (ataque y
+    # defensa separados) desde la misma tabla intermedia.
     home_perspective = pd.DataFrame({
         "match_id": df["match_id"],
         "Date": df["Date"],
         "team": df["HomeTeam"],
-        "stat_diff": df[STAT_FOR_COL] - df[STAT_AGAINST_COL],
+        "stat_for": df[STAT_FOR_COL],
+        "stat_against": df[STAT_AGAINST_COL],
     })
     away_perspective = pd.DataFrame({
         "match_id": df["match_id"],
         "Date": df["Date"],
         "team": df["AwayTeam"],
-        "stat_diff": df[STAT_AGAINST_COL] - df[STAT_FOR_COL],
+        "stat_for": df[STAT_AGAINST_COL],
+        "stat_against": df[STAT_FOR_COL],
     })
     team_long = pd.concat([home_perspective, away_perspective], ignore_index=True)
+    team_long["stat_diff"] = team_long["stat_for"] - team_long["stat_against"]
     team_long = team_long.sort_values(["team", "Date", "match_id"])
 
     # shift(1) = excluye el partido actual del promedio -- solo historial estrictamente
     # anterior. rolling(window, min_periods=1) = usa lo que haya disponible (1 a N
-    # partidos previos), no exige tener los N completos.
-    team_long[FEATURE_NAME] = team_long.groupby("team")["stat_diff"].transform(
-        lambda s: s.shift(1).rolling(window=window, min_periods=1).mean()
-    )
-    # Cold start real: el primerisimo partido de un equipo en todo el dataset no tiene
-    # NADA de historial previo -- prior neutro (0.0), mismo criterio que PROMOTED_TEAM.
-    team_long[FEATURE_NAME] = team_long[FEATURE_NAME].fillna(0.0)
+    # partidos previos), no exige tener los N completos. Cold start real (primerisimo
+    # partido de un equipo en todo el dataset, sin NADA de historial): prior neutro 0.0,
+    # mismo criterio que PROMOTED_TEAM.
+    raw_to_feature = {"stat_diff": "recent_st_diff", "stat_for": "recent_attack", "stat_against": "recent_defense"}
+    for raw_col, out_col in raw_to_feature.items():
+        team_long[out_col] = team_long.groupby("team")[raw_col].transform(
+            lambda s: s.shift(1).rolling(window=window, min_periods=1).mean()
+        )
+        team_long[out_col] = team_long[out_col].fillna(0.0)
 
     # Volver de la vista larga a la vista por partido: para cada match_id, separar
     # cual fila corresponde a la perspectiva del local y cual a la del visitante,
@@ -97,15 +131,15 @@ def add_recent_form_features(df: pd.DataFrame, window: int = ROLLING_WINDOW) -> 
     # que haya quedado despues del sort_values de arriba.
     home_side = team_long.merge(
         df[["match_id", "HomeTeam"]], left_on=["match_id", "team"], right_on=["match_id", "HomeTeam"], how="inner"
-    )[["match_id", FEATURE_NAME]].rename(columns={FEATURE_NAME: f"home_{FEATURE_NAME}"})
+    )[["match_id"] + FEATURE_COLS].rename(columns={c: f"home_{c}" for c in FEATURE_COLS})
 
     away_side = team_long.merge(
         df[["match_id", "AwayTeam"]], left_on=["match_id", "team"], right_on=["match_id", "AwayTeam"], how="inner"
-    )[["match_id", FEATURE_NAME]].rename(columns={FEATURE_NAME: f"away_{FEATURE_NAME}"})
+    )[["match_id"] + FEATURE_COLS].rename(columns={c: f"away_{c}" for c in FEATURE_COLS})
 
     df = df.merge(home_side, on="match_id", how="left").merge(away_side, on="match_id", how="left")
-    df[f"home_{FEATURE_NAME}"] = df[f"home_{FEATURE_NAME}"].fillna(0.0)
-    df[f"away_{FEATURE_NAME}"] = df[f"away_{FEATURE_NAME}"].fillna(0.0)
+    for c in GENERATED_COLS:
+        df[c] = df[c].fillna(0.0)
     df = df.drop(columns=["match_id"])
     return df
 
@@ -117,8 +151,13 @@ def run():
 
     df = add_recent_form_features(df)
 
-    print(f"Agregadas columnas: home_recent_st_diff, away_recent_st_diff (ventana={ROLLING_WINDOW} partidos)")
-    print(df[["Date", "HomeTeam", "AwayTeam", "home_recent_st_diff", "away_recent_st_diff"]].tail(10))
+    print(f"Agregadas/recalculadas columnas (ventana={ROLLING_WINDOW} partidos):")
+    print("  v4 (diferencial neto): home_recent_st_diff, away_recent_st_diff")
+    print("  v5 (ataque/defensa separados): home_recent_attack, home_recent_defense, "
+          "away_recent_attack, away_recent_defense")
+    cols_to_show = ["Date", "HomeTeam", "AwayTeam", "home_recent_attack", "home_recent_defense",
+                     "away_recent_attack", "away_recent_defense"]
+    print(df[cols_to_show].tail(10))
 
     df.to_csv(path, index=False)
     print(f"\nGuardado (sobreescrito) -> {path}")
