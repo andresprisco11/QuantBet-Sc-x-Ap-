@@ -60,3 +60,19 @@ PRIORITY_BOOKMAKERS = {
     "pinnacle": {"open": "PSH", "draw": "PSD", "close_home": "PSCH", "close_draw": "PSCD", "close_away": "PSCA"},
     "bet365": {"open": "B365H", "draw": "B365D", "close_home": "B365CH", "close_draw": "B365CD", "close_away": "B365CA"},
 }
+
+# --- Fase 8b: MLS -- fuente de datos SEPARADA de LEAGUES, a propósito ---
+# No se agrega como una liga más en el diccionario de arriba porque
+# football-data.co.uk la sirve de forma estructuralmente distinta: un
+# único CSV con TODAS las temporadas juntas (no uno por temporada), con
+# columnas de gol/resultado distintas (HG/AG/Res en vez de FTHG/FTAG/FTR),
+# sin tiros al arco/corners, y sin cuota de APERTURA de Pinnacle (solo
+# cierre). Ver docstring completo en src/ingestion/mls_loader.py.
+# 'country_filter_value' es lo confirmado en la última verificación
+# (sesión previa) pero mls_loader.py lo valida en cada corrida imprimiendo
+# los valores únicos reales encontrados -- no se asume a ciegas.
+MLS_SOURCE = {
+    "url": "https://www.football-data.co.uk/new/USA.csv",
+    "country_column": "Country",
+    "country_filter_value": "USA",
+}
