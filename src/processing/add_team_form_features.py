@@ -48,6 +48,14 @@ IMPORTANTE: hay que volver a correr este script cada vez que se regenere
 matches_clean.csv desde cero (por ejemplo, despues de agregar una temporada
 nueva via clean_data.py) -- si no, las columnas de forma reciente quedan
 desactualizadas o directamente no existen.
+
+Fix 2026-08-18 (Fase 8, multi-liga): run() estaba hardcodeado a
+PROCESSED_DATA_DIR / "EPL" / "matches_clean.csv" -- a diferencia de
+clean_data.py y football_data_loader.py, que ya nacieron parametrizados
+por league_key. add_recent_form_features() en si (la logica de rolling
+window) ya era agnostica de liga, no dependia de nada especifico de EPL --
+el unico cambio necesario fue parametrizar run() por liga y loopear sobre
+LEAGUES en __main__, mismo patron que los otros dos scripts.
 """
 import sys
 from pathlib import Path
@@ -55,7 +63,7 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
-from config.settings import PROCESSED_DATA_DIR
+from config.settings import LEAGUES, PROCESSED_DATA_DIR
 
 ROLLING_WINDOW = 5
 
@@ -179,25 +187,30 @@ def add_recent_form_features(df: pd.DataFrame, window: int = ROLLING_WINDOW) -> 
     return df
 
 
-def run():
-    path = PROCESSED_DATA_DIR / "EPL" / "matches_clean.csv"
+def run(league_key: str) -> None:
+    path = PROCESSED_DATA_DIR / league_key / "matches_clean.csv"
+    if not path.exists():
+        print(f"[SKIP] {league_key}: no existe {path} -- corre clean_data.py primero.")
+        return
+
     df = pd.read_csv(path)
-    print(f"Cargado {path} ({len(df)} partidos)")
+    print(f"[{league_key}] Cargado {path} ({len(df)} partidos)")
 
     df = add_recent_form_features(df)
 
-    print(f"Agregadas/recalculadas columnas (ventana={ROLLING_WINDOW} partidos):")
+    print(f"[{league_key}] Agregadas/recalculadas columnas (ventana={ROLLING_WINDOW} partidos):")
     print("  v4 (diferencial neto de tiros al arco): home_recent_st_diff, away_recent_st_diff")
     print("  v5 (tiros al arco, ataque/defensa separados): home_recent_attack, home_recent_defense, "
           "away_recent_attack, away_recent_defense")
-    print("  v6 (diferencial neto de corners, NUEVO): home_recent_corner_diff, away_recent_corner_diff")
+    print("  v6 (diferencial neto de corners): home_recent_corner_diff, away_recent_corner_diff")
     cols_to_show = ["Date", "HomeTeam", "AwayTeam", "home_recent_st_diff", "away_recent_st_diff",
                      "home_recent_corner_diff", "away_recent_corner_diff"]
-    print(df[cols_to_show].tail(10))
+    print(df[cols_to_show].tail(5))
 
     df.to_csv(path, index=False)
-    print(f"\nGuardado (sobreescrito) -> {path}")
+    print(f"[{league_key}] Guardado (sobreescrito) -> {path}\n")
 
 
 if __name__ == "__main__":
-    run()
+    for league_key in LEAGUES:
+        run(league_key)

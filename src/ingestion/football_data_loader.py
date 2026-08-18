@@ -10,6 +10,21 @@ puede devolver 200 OK con contenido incorrecto (ej. cuando el archivo
 de una temporada nueva aun no existe, a veces sirve datos de otra
 division en su lugar). Verificamos que la columna 'Div' del CSV
 coincida con el codigo de liga esperado antes de aceptar los datos.
+
+Fix 2026-08-18: al agregar La Liga/Serie A/Bundesliga (Fase 8) crasheo
+en produccion apenas se corrio contra las 4 ligas. Causa raiz confirmada
+con curl directo: cuando una temporada todavia no existe en el sitio
+(ej. 2627, la temporada en curso), el servidor NO devuelve 404 -- devuelve
+HTTP 300 "Multiple Choices" con una pagina HTML de error como cuerpo
+(sugiriendo nombres de archivo parecidos). `raise_for_status()` solo lanza
+en codigos >=400, asi que un 300 pasaba sin ser detectado, y read_csv()
+explotaba con `pandas.errors.ParserError` al intentar parsear HTML como
+CSV -- excepcion que no estaba capturada en ningun lado, y tumbaba todo
+el script en vez de skipear esa temporada como ya hacia con LeagueMismatchError.
+Se agrega: (1) chequeo explicito de status_code == 200 antes de confiar en
+el contenido, (2) try/except alrededor del parseo de CSV como red de
+seguridad adicional -- mismo tratamiento que un CSV con liga incorrecta:
+se skipea la temporada y se limpia cualquier archivo crudo viejo.
 """
 
 import sys
@@ -30,6 +45,13 @@ class LeagueMismatchError(Exception):
     pass
 
 
+class SeasonUnavailableError(Exception):
+    """Se lanza cuando la temporada todavia no esta publicada en el sitio
+    (respuesta no-200, o contenido que no es un CSV valido -- tipicamente
+    una pagina HTML de error servida con status 300/404/etc.)."""
+    pass
+
+
 def download_season(league_key: str, season: str, max_retries: int = 3, timeout: int = 30) -> pd.DataFrame:
     league_code = LEAGUES[league_key]["code"]
     url = BASE_URL.format(season=season, league_code=league_code)
@@ -38,7 +60,18 @@ def download_season(league_key: str, season: str, max_retries: int = 3, timeout:
     for attempt in range(1, max_retries + 1):
         try:
             response = requests.get(url, timeout=timeout)
-            response.raise_for_status()
+
+            # Chequeo explicito de 200: football-data.co.uk puede devolver
+            # codigos como 300 (pagina de error HTML con sugerencias de
+            # nombre de archivo) que raise_for_status() no detecta porque
+            # no es >=400. Cualquier cosa que no sea 200 se trata como
+            # "temporada todavia no publicada", no como error de red.
+            if response.status_code != 200:
+                raise SeasonUnavailableError(
+                    f"{league_key} {season}: HTTP {response.status_code} en vez de 200 "
+                    f"(la temporada probablemente todavia no esta publicada). Descartando."
+                )
+
             from io import StringIO
 
             # Estos CSVs a veces traen un BOM (marca de orden de bytes) al
@@ -55,7 +88,18 @@ def download_season(league_key: str, season: str, max_retries: int = 3, timeout:
             except UnicodeDecodeError:
                 text = raw_bytes.decode("latin-1")
 
-            df = pd.read_csv(StringIO(text))
+            # Red de seguridad adicional: aunque el status haya sido 200,
+            # el contenido podria no ser un CSV valido. Si pandas no puede
+            # tokenizarlo, se trata igual que una temporada no disponible
+            # en vez de crashear todo el script.
+            try:
+                df = pd.read_csv(StringIO(text))
+            except (pd.errors.ParserError, pd.errors.EmptyDataError) as e:
+                raise SeasonUnavailableError(
+                    f"{league_key} {season}: la respuesta (HTTP 200) no es un CSV valido "
+                    f"({type(e).__name__}: {e}). Descartando."
+                )
+
             # Defensa adicional: normalizar nombres de columna por si queda
             # basura de encoding pegada (espacios, BOM residual, etc.).
             df.columns = [str(c).replace("﻿", "").strip() for c in df.columns]
@@ -78,7 +122,7 @@ def download_season(league_key: str, season: str, max_retries: int = 3, timeout:
             df["season"] = season
             df["league_key"] = league_key
             return df
-        except LeagueMismatchError:
+        except (LeagueMismatchError, SeasonUnavailableError):
             raise
         except requests.exceptions.RequestException as e:
             last_error = e
@@ -105,6 +149,9 @@ def ingest_league(league_key: str) -> None:
             filepath = save_raw(df, league_key, season)
             print(f"[OK] {league_key} {season}: {len(df)} partidos -> {filepath}")
         except LeagueMismatchError as e:
+            print(f"[SKIP] {e}")
+            _remove_stale_file(league_key, season)
+        except SeasonUnavailableError as e:
             print(f"[SKIP] {e}")
             _remove_stale_file(league_key, season)
         except requests.exceptions.RequestException as e:
