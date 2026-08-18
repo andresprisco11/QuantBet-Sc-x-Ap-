@@ -1,0 +1,93 @@
+league_key,periodo,team,n_bets,win_rate
+EPL,Recientes,Man City,12,0.5833333333333334
+EPL,Recientes,Newcastle,10,0.4
+EPL,Recientes,Tottenham,10,0.4
+EPL,Recientes,Man United,9,0.6666666666666666
+EPL,Recientes,West Ham,9,0.4444444444444444
+EPL,Recientes,Crystal Palace,7,0.2857142857142857
+EPL,Recientes,Fulham,6,0.6666666666666666
+EPL,Recientes,Brentford,6,0.3333333333333333
+EPL,Recientes,Arsenal,5,0.2
+EPL,Recientes,Brighton,4,0.5
+EPL,Recientes,Aston Villa,4,0.5
+EPL,Recientes,Liverpool,4,0.25
+EPL,Recientes,Leicester,4,0.75
+EPL,Recientes,__GLOBAL__,98,0.4489795918367347
+EPL,Resto,Leicester,12,0.25
+EPL,Resto,Tottenham,11,0.45454545454545453
+EPL,Resto,Liverpool,9,0.4444444444444444
+EPL,Resto,West Ham,9,0.5555555555555556
+EPL,Resto,Chelsea,7,0.14285714285714285
+EPL,Resto,Crystal Palace,4,0.5
+EPL,Resto,Man City,4,0.5
+EPL,Resto,__GLOBAL__,65,0.35384615384615387
+LALIGA,Recientes,Girona,25,0.4
+LALIGA,Recientes,Villarreal,13,0.46153846153846156
+LALIGA,Recientes,Betis,10,0.6
+LALIGA,Recientes,Ath Madrid,8,0.5
+LALIGA,Recientes,Barcelona,5,0.2
+LALIGA,Recientes,Valencia,5,0.2
+LALIGA,Recientes,Ath Bilbao,4,0.5
+LALIGA,Recientes,Sociedad,4,0.5
+LALIGA,Recientes,Espanol,4,0.75
+LALIGA,Recientes,Granada,3,0.6666666666666666
+LALIGA,Recientes,Sevilla,3,0.3333333333333333
+LALIGA,Recientes,__GLOBAL__,92,0.4673913043478261
+LALIGA,Resto,Villarreal,11,0.7272727272727273
+LALIGA,Resto,Betis,10,0.4
+LALIGA,Resto,Sevilla,10,0.4
+LALIGA,Resto,Real Madrid,8,0.5
+LALIGA,Resto,Ath Madrid,4,0.5
+LALIGA,Resto,Elche,4,0.0
+LALIGA,Resto,__GLOBAL__,53,0.4716981132075472
+SERIEA,Recientes,Lazio,20,0.45
+SERIEA,Recientes,Napoli,12,0.25
+SERIEA,Recientes,Fiorentina,12,0.3333333333333333
+SERIEA,Recientes,Atalanta,11,0.36363636363636365
+SERIEA,Recientes,Inter,7,0.2857142857142857
+SERIEA,Recientes,Milan,7,0.8571428571428571
+SERIEA,Recientes,Bologna,6,0.16666666666666666
+SERIEA,Recientes,Udinese,6,0.16666666666666666
+SERIEA,Recientes,Torino,6,0.16666666666666666
+SERIEA,Recientes,Verona,5,0.2
+SERIEA,Recientes,Roma,4,0.75
+SERIEA,Recientes,Juventus,3,0.3333333333333333
+SERIEA,Recientes,Sassuolo,3,0.0
+SERIEA,Recientes,__GLOBAL__,107,0.3364485981308411
+SERIEA,Resto,Inter,10,0.4
+SERIEA,Resto,Sassuolo,10,0.3
+SERIEA,Resto,Verona,9,0.3333333333333333
+SERIEA,Resto,Milan,8,0.25
+SERIEA,Resto,Atalanta,7,0.5714285714285714
+SERIEA,Resto,Napoli,7,0.7142857142857143
+SERIEA,Resto,Lazio,6,0.5
+SERIEA,Resto,Udinese,5,0.4
+SERIEA,Resto,Juventus,4,0.25
+SERIEA,Resto,Sampdoria,4,0.0
+SERIEA,Resto,Torino,4,0.75
+SERIEA,Resto,__GLOBAL__,80,0.4
+BUNDESLIGA,Recientes,Dortmund,9,0.3333333333333333
+BUNDESLIGA,Recientes,Hoffenheim,9,0.3333333333333333
+BUNDESLIGA,Recientes,RB Leipzig,9,0.2222222222222222
+BUNDESLIGA,Recientes,Union Berlin,8,0.125
+BUNDESLIGA,Recientes,M'gladbach,7,0.5714285714285714
+BUNDESLIGA,Recientes,Wolfsburg,6,0.3333333333333333
+BUNDESLIGA,Recientes,FC Koln,6,0.3333333333333333
+BUNDESLIGA,Recientes,Leverkusen,6,0.3333333333333333
+BUNDESLIGA,Recientes,Mainz,5,0.0
+BUNDESLIGA,Recientes,Werder Bremen,5,0.4
+BUNDESLIGA,Recientes,Freiburg,4,0.5
+BUNDESLIGA,Recientes,Ein Frankfurt,4,0.5
+BUNDESLIGA,Recientes,__GLOBAL__,85,0.3411764705882353
+BUNDESLIGA,Resto,Leverkusen,12,0.4166666666666667
+BUNDESLIGA,Resto,RB Leipzig,7,0.8571428571428571
+BUNDESLIGA,Resto,M'gladbach,6,0.5
+BUNDESLIGA,Resto,Freiburg,6,0.6666666666666666
+BUNDESLIGA,Resto,Wolfsburg,5,0.4
+BUNDESLIGA,Resto,Dortmund,4,0.75
+BUNDESLIGA,Resto,Hoffenheim,4,0.75
+BUNDESLIGA,Resto,Union Berlin,4,0.75
+BUNDESLIGA,Resto,Ein Frankfurt,3,0.6666666666666666
+BUNDESLIGA,Resto,FC Koln,3,0.6666666666666666
+BUNDESLIGA,Resto,Stuttgart,3,0.0
+BUNDESLIGA,Resto,__GLOBAL__,61,0.5573770491803278
