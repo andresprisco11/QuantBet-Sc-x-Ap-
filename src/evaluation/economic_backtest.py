@@ -35,9 +35,20 @@ exigente. Se eligio min_edge_threshold=0.08 como punto medio entre
 confiabilidad estadistica (256 apuestas) y rendimiento (ROI +2.11%,
 drawdown ~19.5%). Estos tres valores son ahora el default de run().
 
+IMPORTANTE (Fase 8, 2026-08-18): esos tres valores se tunearon
+EXCLUSIVAMENTE sobre EPL. Al parametrizar este script por liga, se
+mantienen como default global -- pero eso es una hipotesis a validar,
+NO un hecho: no hay ninguna razon matematica para asumir que la regla
+optima de staking de EPL transfiere igual a Serie A, Bundesliga o La
+Liga (mercados con distinta distribucion de cuotas, distinta paridad,
+distinto Brier de mercado -- ver roadmap, Fase 8). tune_staking_rules.py
+tambien se parametrizo por liga (ver ese script) especificamente para
+poder chequear esto con evidencia antes de asumirlo.
+
 METODOLOGIA (sin cambios, ver el resto del docstring de la version
 anterior para el detalle completo):
-1. Fuente: 'model_predictions_oos_walkforward_v4.csv' (backtest_v4.py).
+1. Fuente: 'model_predictions_oos_walkforward_v4.csv' (backtest_v4.py),
+   por liga.
 2. Precio de ejecucion: cuotas DECIMALES de apertura de Pinnacle
    (PSH/PSD/PSA).
 3. Probabilidad "justa": blend_prob_* (Benter Boost del walk-forward v4).
@@ -58,20 +69,13 @@ import numpy as np
 import pandas as pd
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
-from config.settings import PROCESSED_DATA_DIR
+from config.settings import LEAGUES, PROCESSED_DATA_DIR
 from src.tracking.run_logger import log_run
 
-KELLY_FRACTION = 0.10          # ACTUALIZADO tras tune_staking_rules.py (ver docstring arriba) -- 25% daba
-                                # ROI negativo en casi toda la grilla; 10% fue robusto en las 4 combinaciones
-                                # de min_edge probadas dentro de max_odds=3.0.
-MIN_EDGE_THRESHOLD = 0.08      # ACTUALIZADO -- punto medio elegido entre las 4 opciones de la zona robusta:
-                                # 256 apuestas (el doble que el umbral mas exigente de 12%), ROI +2.11%,
-                                # drawdown ~19.5%. Ver data/runs/staking_sweep_v4.csv para la grilla completa.
+KELLY_FRACTION = 0.10          # tuneado sobre EPL (ver docstring) -- default global, a validar por liga.
+MIN_EDGE_THRESHOLD = 0.08      # tuneado sobre EPL (ver docstring) -- default global, a validar por liga.
 MAX_STAKE_FRACTION = 0.05      # tope duro: nunca mas del 5% del bankroll actual en una sola apuesta.
-MAX_ODDS = 3.0                 # ACTUALIZADO -- el hallazgo mas fuerte del barrido: cortar el universo
-                                # apostable en cuota 3.00 le gana a 5.00 y a "sin tope" en TODAS las
-                                # combinaciones, sin excepcion. Es donde selection_bias_check.py encontro
-                                # el sesgo de seleccion mas severo.
+MAX_ODDS = 3.0                 # tuneado sobre EPL (ver docstring) -- default global, a validar por liga.
 INITIAL_BANKROLL = 1000.0      # unidades arbitrarias -- lo que importa es el multiplo final, no la moneda.
 
 SIDES = [
@@ -166,10 +170,10 @@ def _simulate_bankroll(bets: pd.DataFrame, kelly_fraction: float = KELLY_FRACTIO
     return bets
 
 
-def load_eval_df() -> pd.DataFrame:
-    """Carga model_predictions_oos_walkforward_v4.csv y filtra a partidos con blend disponible.
+def load_eval_df(league_key: str) -> pd.DataFrame:
+    """Carga model_predictions_oos_walkforward_v4.csv de UNA liga y filtra a partidos con blend disponible.
     Reutilizado por tune_staking_rules.py para no duplicar esta parte."""
-    path = PROCESSED_DATA_DIR / "EPL" / "model_predictions_oos_walkforward_v4.csv"
+    path = PROCESSED_DATA_DIR / league_key / "model_predictions_oos_walkforward_v4.csv"
     if not path.exists():
         raise FileNotFoundError(
             f"No existe {path}. Corre 'python -m src.models.backtest_v4' primero -- este script solo "
@@ -195,8 +199,14 @@ def _print_breakdown(bets: pd.DataFrame, group_col: str, label: str):
     print(grouped.round(4).to_string())
 
 
-def run():
-    df_eval = load_eval_df()
+def run(league_key: str) -> None:
+    print(f"\n=== {league_key} ===")
+    try:
+        df_eval = load_eval_df(league_key)
+    except FileNotFoundError as e:
+        print(f"[SKIP] {e}")
+        return
+
     print(f"Partidos con blend disponible (cuota de cierre presente): {len(df_eval)}")
 
     bets = _select_bets(df_eval, min_edge_threshold=MIN_EDGE_THRESHOLD, max_odds=MAX_ODDS)
@@ -205,8 +215,8 @@ def run():
     print(f"Partidos con edge > {MIN_EDGE_THRESHOLD:.0%}: {n_bets} apostados, {n_skipped} descartados (sin valor suficiente)")
 
     if n_bets == 0:
-        print("\n[AVISO] Cero apuestas seleccionadas con el umbral actual -- no hay backtest economico que correr. "
-              "Prueba bajando MIN_EDGE_THRESHOLD si esto es inesperado.")
+        print(f"\n[AVISO] {league_key}: cero apuestas seleccionadas con el umbral actual -- no hay backtest "
+              f"economico que correr. Prueba bajando MIN_EDGE_THRESHOLD si esto es inesperado.")
         return
 
     bets = _simulate_bankroll(bets, kelly_fraction=KELLY_FRACTION, max_stake_fraction=MAX_STAKE_FRACTION,
@@ -221,7 +231,7 @@ def run():
     avg_clv = bets["clv"].mean()
     clv_positive_pct = (bets["clv"] > 0).mean()
 
-    print(f"\n=== Resultado del backtest economico (v4, Kelly fraccional {KELLY_FRACTION:.0%}, "
+    print(f"\n=== Resultado del backtest economico [{league_key}] (v4, Kelly fraccional {KELLY_FRACTION:.0%}, "
           f"umbral de edge {MIN_EDGE_THRESHOLD:.0%}, tope de cuota {MAX_ODDS if MAX_ODDS else 'sin tope'}) ===")
     print(f"Apuestas simuladas:                {n_bets}")
     print(f"Bankroll inicial:                  {INITIAL_BANKROLL:.2f}")
@@ -244,7 +254,7 @@ def run():
 
     _print_breakdown(bets, "bet_side", "lado apostado (H/D/A)")
 
-    out_path = PROCESSED_DATA_DIR / "EPL" / "economic_backtest_v4_bets.csv"
+    out_path = PROCESSED_DATA_DIR / league_key / "economic_backtest_v4_bets.csv"
     bets.to_csv(out_path, index=False)
     print(f"\nGuardado detalle apuesta por apuesta -> {out_path}")
 
@@ -252,9 +262,11 @@ def run():
         script="economic_backtest.py",
         model_name="poisson",
         model_version="v4",
-        data_paths=[PROCESSED_DATA_DIR / "EPL" / "model_predictions_oos_walkforward_v4.csv"],
-        features="Analisis economico sobre predicciones ya generadas por backtest_v4.py -- no entrena modelo nuevo.",
+        data_paths=[PROCESSED_DATA_DIR / league_key / "model_predictions_oos_walkforward_v4.csv"],
+        features=f"[{league_key}] Analisis economico sobre predicciones ya generadas por backtest_v4.py -- "
+                  "no entrena modelo nuevo.",
         hyperparameters={
+            "league_key": league_key,
             "kelly_fraction": KELLY_FRACTION,
             "min_edge_threshold": MIN_EDGE_THRESHOLD,
             "max_stake_fraction": MAX_STAKE_FRACTION,
@@ -273,12 +285,12 @@ def run():
             "clv_positive_pct": clv_positive_pct,
         },
         predictions_path=out_path,
-        notes="Corrida del framework multi-metrica (CLV + Kelly fraccional + drawdown + robustez por "
-              "temporada/rango de cuota/lado) sobre v4. Ver calibration_analysis.py y "
-              "selection_bias_check.py para el diagnostico de winner's curse que motiva "
-              "tune_staking_rules.py como siguiente paso.",
+        notes=f"[{league_key}] Corrida del framework multi-metrica (CLV + Kelly fraccional + drawdown + "
+              "robustez por temporada/rango de cuota/lado) sobre v4. Hiperparametros de staking tuneados "
+              "sobre EPL (Fase 3.5) -- todavia no re-validados especificamente para esta liga si no es EPL.",
     )
 
 
 if __name__ == "__main__":
-    run()
+    for league_key in LEAGUES:
+        run(league_key)

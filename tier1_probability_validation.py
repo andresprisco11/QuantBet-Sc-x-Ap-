@@ -26,6 +26,12 @@ cuota promedio disponible en cada umbral, para saber si ese segmento
 tiene volumen/cuota utilizable en la practica (un favorito al 90% de
 probabilidad paga muy poco, y eso importa para el diseno de "bankroll
 builder" de Tier 1).
+
+Fix 2026-08-18 (Fase 8, multi-liga): run() estaba hardcodeado a EPL. Se
+parametriza por league_key y se loopea sobre LEAGUES en __main__ -- la
+pregunta que motiva este script (cuanto volumen real hay en el umbral de
+Tier 1) es precisamente la que la expansion de ligas busca resolver, asi
+que verlo separado por liga (y comparado) es el punto central de este fix.
 """
 import sys
 from pathlib import Path
@@ -33,17 +39,18 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
-from config.settings import PROCESSED_DATA_DIR
+from config.settings import LEAGUES, PROCESSED_DATA_DIR
 
 THRESHOLDS = [0.70, 0.75, 0.80, 0.82, 0.85, 0.90]
 
 
-def run():
-    path = PROCESSED_DATA_DIR / "EPL" / "calibration_analysis_v4_long.csv"
+def run(league_key: str) -> pd.DataFrame:
+    print(f"\n=== {league_key} ===")
+    path = PROCESSED_DATA_DIR / league_key / "calibration_analysis_v4_long.csv"
     if not path.exists():
-        raise FileNotFoundError(
-            f"No existe {path}. Corre 'python -m src.evaluation.calibration_analysis' primero."
-        )
+        print(f"[SKIP] No existe {path}. Corre 'python -m src.evaluation.calibration_analysis' primero.")
+        return pd.DataFrame()
+
     long_df = pd.read_csv(path)
     print(f"Filas disponibles (partido x resultado posible): {len(long_df)}\n")
 
@@ -71,19 +78,14 @@ def run():
         })
 
     table = pd.DataFrame(rows).set_index("umbral_confianza")
-    print("=== Cuando el modelo dice 'estoy mas seguro que X%', que tan seguido acierta de verdad? ===")
+    print(f"=== [{league_key}] Cuando el modelo dice 'estoy mas seguro que X%', que tan seguido acierta de verdad? ===")
     print(table.round(4).to_string())
-    print("\nLectura: 'acierto_real' es la frecuencia REAL de acierto en cada umbral -- compara eso "
-          "directo contra la meta de Tier 1 (80-82%). 'gap' negativo significa que el modelo esta "
-          "sobre-confiado incluso en su segmento mas seguro (acierta MENOS de lo que dice). "
-          "'cuota_promedio' importa para saber si ese segmento paga lo suficiente para ser un "
-          "'bankroll builder' util, no solo si acierta.")
 
     # Desglose adicional: el umbral mas cercano a la meta real de Tier 1 (80%), por temporada,
     # para ver si es consistente o si depende de un año particular.
     tier1_subset = long_df[long_df["predicted_prob"] >= 0.80]
     if not tier1_subset.empty:
-        print("\n=== Umbral >=80% (meta de Tier 1), desglosado por temporada ===")
+        print(f"\n=== [{league_key}] Umbral >=80% (meta de Tier 1), desglosado por temporada ===")
         by_season = tier1_subset.groupby("season").agg(
             n_casos=("actual", "count"),
             acierto_real=("actual", "mean"),
@@ -91,10 +93,28 @@ def run():
         )
         print(by_season.round(4).to_string())
     else:
-        print("\n[AVISO] Cero casos con predicted_prob >= 80% en todo el dataset -- el modelo nunca "
-              "llega a ese nivel de confianza en ningun resultado. Esto en si mismo es informacion "
-              "clave para Tier 1.")
+        print(f"\n[AVISO] {league_key}: cero casos con predicted_prob >= 80% en todo el dataset -- el modelo "
+              f"nunca llega a ese nivel de confianza en ningun resultado en esta liga. Esto en si mismo es "
+              f"informacion clave para Tier 1.")
+
+    table = table.reset_index()
+    table["league_key"] = league_key
+    return table
 
 
 if __name__ == "__main__":
-    run()
+    all_tables = []
+    for league_key in LEAGUES:
+        t = run(league_key)
+        if not t.empty:
+            all_tables.append(t)
+
+    if all_tables:
+        combined = pd.concat(all_tables, ignore_index=True)
+        n_80_total = combined.loc[combined["umbral_confianza"] == ">=80%", "n_casos"].sum()
+        print(f"\n=== TOTAL combinado, las {len(all_tables)} ligas, umbral >=80% ===")
+        print(f"n_casos sumados entre todas las ligas: {n_80_total} "
+              f"(referencia previa, solo EPL: 59 -- ver roadmap Fase 3.5)")
+        print(combined[combined["umbral_confianza"] == ">=80%"]
+              [["league_key", "n_casos", "prob_promedio_dicha", "acierto_real", "gap"]]
+              .round(4).to_string(index=False))

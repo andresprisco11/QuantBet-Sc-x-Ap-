@@ -5,8 +5,8 @@ partido.
 
 MOTIVACION: calibration_analysis.py encontro que la calibracion GENERAL
 del blend v4 (los 3 resultados de TODOS los partidos, sin filtrar) es
-razonable -- ECE de 1.3-1.4%, y en cuotas altas (3.00-5.00, 5.00+) el
-modelo sobreestima la probabilidad real solo por ~1-1.5 puntos
+razonable -- ECE de 1.3-1.4% en EPL -- y en cuotas altas (3.00-5.00,
+5.00+) el modelo sobreestima la probabilidad real solo por ~1-1.5 puntos
 porcentuales. Eso NO alcanza, por si solo, para explicar un ROI de
 -18% a -20% en esos mismos rangos de cuota en el backtest economico.
 
@@ -24,12 +24,25 @@ vs observado) deberia ser mucho mas grande especificamente en el
 subconjunto de apuestas SELECCIONADAS que en la poblacion general de
 resultados posibles.
 
-Este script no recalcula nada -- solo re-analiza
+Este script no recalcula probabilidades ni entrena nada -- solo re-analiza
 'economic_backtest_v4_bets.csv' (las apuestas que economic_backtest.py ya
 selecciono y simulo, con su columna 'odds_bin' ya calculada) para
 comparar DIRECTAMENTE, bin por bin de cuota, el gap de calibracion de la
-poblacion general (medido por calibration_analysis.py) contra el gap del
-subconjunto efectivamente apostado.
+poblacion general contra el gap del subconjunto efectivamente apostado.
+
+Fix 2026-08-18 (Fase 8, multi-liga): la version anterior tenia
+REFERENCE_GENERAL_GAP como un diccionario HARDCODEADO, copiado a mano del
+resultado impreso por calibration_analysis.py sobre EPL. Eso era valido
+mientras solo existia una liga, pero aplicar esos mismos numeros como
+referencia "poblacion general" para Serie A/Bundesliga/La Liga habria
+sido lisa y llanamente incorrecto -- cada liga tiene su propia
+calibracion de mercado, ya lo confirmo el resultado de backtest_v4.py
+multi-liga (Brier de mercado distinto por liga). Se reemplaza el
+diccionario fijo por una lectura DINAMICA de
+'calibration_analysis_v4_long.csv' de la liga correspondiente (que ya
+tiene la columna 'odds_bin' precalculada, mismos cortes que
+economic_backtest.py) -- la referencia ahora siempre es la poblacion
+general de ESA MISMA liga, nunca un numero prestado de otra.
 """
 import sys
 from pathlib import Path
@@ -37,28 +50,43 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
-from config.settings import PROCESSED_DATA_DIR
-
-# Gaps de calibration_analysis.py sobre la POBLACION GENERAL (los 3
-# resultados posibles de los 1,730 partidos con cuota de cierre, sin
-# filtrar por si esa apuesta fue seleccionada) -- copiados aca solo para
-# imprimir la comparacion lado a lado, no se recalculan.
-REFERENCE_GENERAL_GAP = {
-    "1.00-1.50": 0.0375,
-    "1.50-2.00": 0.0287,
-    "2.00-3.00": 0.0041,
-    "3.00-5.00": -0.0097,
-    "5.00+": -0.0155,
-}
+from config.settings import LEAGUES, PROCESSED_DATA_DIR
 
 
-def run():
-    path = PROCESSED_DATA_DIR / "EPL" / "economic_backtest_v4_bets.csv"
+def _general_population_gap(league_key: str) -> pd.DataFrame:
+    """Recalcula, para ESTA liga, el gap de calibracion por rango de cuota sobre la
+    poblacion general de resultados posibles (los 3 por partido, sin filtrar por si
+    fueron seleccionados) -- misma tabla que calibration_analysis.py imprime, leida
+    de su output ya guardado en vez de hardcodear numeros de otra liga."""
+    path = PROCESSED_DATA_DIR / league_key / "calibration_analysis_v4_long.csv"
     if not path.exists():
         raise FileNotFoundError(
-            f"No existe {path}. Corre 'python -m src.evaluation.economic_backtest' primero."
+            f"No existe {path}. Corre 'python -m src.evaluation.calibration_analysis' primero -- "
+            f"la referencia de poblacion general se lee de ahi, no se hardcodea."
         )
-    bets = pd.read_csv(path)
+    long_df = pd.read_csv(path)
+    table = long_df.groupby("odds_bin", observed=True).agg(
+        predicted_mean=("predicted_prob", "mean"),
+        observed_freq=("actual", "mean"),
+    )
+    table["gap_poblacion_general"] = table["observed_freq"] - table["predicted_mean"]
+    return table[["gap_poblacion_general"]]
+
+
+def run(league_key: str) -> None:
+    print(f"\n=== {league_key} ===")
+    bets_path = PROCESSED_DATA_DIR / league_key / "economic_backtest_v4_bets.csv"
+    if not bets_path.exists():
+        print(f"[SKIP] No existe {bets_path}. Corre 'python -m src.evaluation.economic_backtest' primero.")
+        return
+
+    try:
+        reference = _general_population_gap(league_key)
+    except FileNotFoundError as e:
+        print(f"[SKIP] {e}")
+        return
+
+    bets = pd.read_csv(bets_path)
 
     table = bets.groupby("odds_bin", observed=True).agg(
         n_apuestas=("won", "count"),
@@ -66,10 +94,11 @@ def run():
         observed_freq=("won", "mean"),
     )
     table["gap_apuestas_seleccionadas"] = table["observed_freq"] - table["predicted_mean"]
-    table["gap_poblacion_general"] = [REFERENCE_GENERAL_GAP.get(str(i), float("nan")) for i in table.index]
+    table = table.join(reference, how="left")
     table["diferencia_de_sesgo"] = table["gap_apuestas_seleccionadas"] - table["gap_poblacion_general"]
 
-    print("=== Comparacion: calibracion de las apuestas SELECCIONADAS vs. poblacion general ===")
+    print(f"=== [{league_key}] Comparacion: calibracion de las apuestas SELECCIONADAS vs. poblacion general "
+          f"(referencia recalculada de esta misma liga, no hardcodeada) ===")
     print(table.round(4).to_string())
     print("\nLectura: 'gap_apuestas_seleccionadas' mas negativo que 'gap_poblacion_general' en un bin "
           "significa que, especificamente entre las apuestas que el proceso de seleccion eligio en ese "
@@ -80,4 +109,5 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    for league_key in LEAGUES:
+        run(league_key)

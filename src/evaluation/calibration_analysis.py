@@ -27,9 +27,16 @@ blend y un indicador binario de si ese resultado especifico ocurrio.
 Es el approach estandar para reliability diagrams / curvas de
 calibracion en pronosticos probabilisticos multiclase.
 
-Fuente de datos: 'model_predictions_oos_walkforward_v4.csv', igual que
-economic_backtest.py -- no entrena nada nuevo, solo re-analiza lo que
-ya existe.
+Fuente de datos: 'model_predictions_oos_walkforward_v4.csv', por liga,
+igual que economic_backtest.py -- no entrena nada nuevo, solo re-analiza
+lo que ya existe.
+
+Fix 2026-08-18 (Fase 8, multi-liga): run() estaba hardcodeado a
+PROCESSED_DATA_DIR / "EPL". Se parametriza por league_key y se loopea
+sobre LEAGUES en __main__, mismo patron que el resto de la cadena. El
+output ('calibration_analysis_v4_long.csv') ahora se guarda por liga --
+es el insumo que selection_bias_check.py y tier1_probability_validation.py
+tambien necesitan por liga (ver sus propios fixes).
 """
 import sys
 from pathlib import Path
@@ -38,7 +45,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
-from config.settings import PROCESSED_DATA_DIR
+from config.settings import LEAGUES, PROCESSED_DATA_DIR
 from src.tracking.run_logger import log_run
 
 N_PROB_BINS = 10
@@ -87,13 +94,13 @@ def _expected_calibration_error(table: pd.DataFrame) -> float:
     return float((table["n"] * table["gap"].abs()).sum() / total_n)
 
 
-def run():
-    path = PROCESSED_DATA_DIR / "EPL" / "model_predictions_oos_walkforward_v4.csv"
+def run(league_key: str) -> None:
+    print(f"\n=== {league_key} ===")
+    path = PROCESSED_DATA_DIR / league_key / "model_predictions_oos_walkforward_v4.csv"
     if not path.exists():
-        raise FileNotFoundError(
-            f"No existe {path}. Corre 'python -m src.models.backtest_v4' primero -- este script solo "
-            f"re-analiza predicciones ya generadas, no entrena nada."
-        )
+        print(f"[SKIP] No existe {path}. Corre 'python -m src.models.backtest_v4' primero.")
+        return
+
     df = pd.read_csv(path)
     has_blend = df["blend_prob_home"].notna() if "blend_prob_home" in df.columns else pd.Series(False, index=df.index)
     df_eval = df.loc[has_blend].copy()
@@ -109,7 +116,7 @@ def run():
     prob_table = _calibration_table(long_df, "prob_decile")
     ece_prob = _expected_calibration_error(prob_table)
 
-    print("\n=== Calibracion por decil de probabilidad predicha (blend v4) ===")
+    print(f"\n=== [{league_key}] Calibracion por decil de probabilidad predicha (blend v4) ===")
     print(prob_table.round(4).to_string())
     print(f"\nExpected Calibration Error (ECE), ponderado por decil de probabilidad: {ece_prob:.4f}")
 
@@ -118,16 +125,17 @@ def run():
     odds_table = _calibration_table(long_df, "odds_bin")
     ece_odds = _expected_calibration_error(odds_table)
 
-    print("\n=== Calibracion por rango de cuota (compara directo con el desglose de economic_backtest.py) ===")
+    print(f"\n=== [{league_key}] Calibracion por rango de cuota (compara directo con el desglose de "
+          f"economic_backtest.py) ===")
     print(odds_table.round(4).to_string())
     print(f"\nExpected Calibration Error (ECE), ponderado por rango de cuota: {ece_odds:.4f}")
 
     # --- calibracion por lado (home/draw/away) -- puede haber sesgo estructural por localia ---
     side_table = _calibration_table(long_df, "side")
-    print("\n=== Calibracion por lado (home/draw/away) ===")
+    print(f"\n=== [{league_key}] Calibracion por lado (home/draw/away) ===")
     print(side_table.round(4).to_string())
 
-    out_path = PROCESSED_DATA_DIR / "EPL" / "calibration_analysis_v4_long.csv"
+    out_path = PROCESSED_DATA_DIR / league_key / "calibration_analysis_v4_long.csv"
     long_df.to_csv(out_path, index=False)
     print(f"\nGuardado detalle desenrollado (partido x resultado posible) -> {out_path}")
 
@@ -136,9 +144,9 @@ def run():
         model_name="poisson",
         model_version="v4",
         data_paths=[path],
-        features="Diagnostico de calibracion sobre blend_prob_* ya generado por backtest_v4.py -- no entrena "
-                  "modelo nuevo, solo re-analiza.",
-        hyperparameters={"n_prob_bins": N_PROB_BINS, "odds_bin_edges": ODDS_BIN_LABELS},
+        features=f"[{league_key}] Diagnostico de calibracion sobre blend_prob_* ya generado por "
+                  "backtest_v4.py -- no entrena modelo nuevo, solo re-analiza.",
+        hyperparameters={"league_key": league_key, "n_prob_bins": N_PROB_BINS, "odds_bin_edges": ODDS_BIN_LABELS},
         metrics={
             "ece_por_decil_probabilidad": ece_prob,
             "ece_por_rango_de_cuota": ece_odds,
@@ -147,11 +155,11 @@ def run():
             "gap_odds_5.00_plus": float(odds_table.loc["5.00+", "gap"]) if "5.00+" in odds_table.index else None,
         },
         predictions_path=out_path,
-        notes="Diagnostico de calibracion (reliability diagram) para explicar por que economic_backtest.py dio "
-              "CLV promedio positivo (+0.0062, 60.93% de apuestas) pero ROI muy negativo (-8.94%, drawdown "
-              "92.37%), concentrado en cuotas altas.",
+        notes=f"[{league_key}] Diagnostico de calibracion (reliability diagram), parte de la capa de "
+              "evaluacion multi-metrica de Fase 3.5, extendida a las 4 ligas en Fase 8.",
     )
 
 
 if __name__ == "__main__":
-    run()
+    for league_key in LEAGUES:
+        run(league_key)
