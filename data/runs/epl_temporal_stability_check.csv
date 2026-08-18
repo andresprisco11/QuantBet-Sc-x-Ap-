@@ -1,0 +1,15 @@
+regla,temporada,n_bets,win_rate,roi
+"original (min_edge=8%, kelly=10%, max_odds=3.0)",2122,89,0.4606741573033708,0.1461098452933261
+"original (min_edge=8%, kelly=10%, max_odds=3.0)",2223,69,0.3333333333333333,-0.15326303297977836
+"original (min_edge=8%, kelly=10%, max_odds=3.0)",2324,34,0.5588235294117647,0.319320705409533
+"original (min_edge=8%, kelly=10%, max_odds=3.0)",2425,43,0.4418604651162791,0.012437000853611022
+"original (min_edge=8%, kelly=10%, max_odds=3.0)",2526,21,0.2857142857142857,-0.39986443637531954
+"original (min_edge=8%, kelly=10%, max_odds=3.0)",PRIMERA_MITAD,158,0.4050632911392405,0.02735583309215705
+"original (min_edge=8%, kelly=10%, max_odds=3.0)",SEGUNDA_MITAD,98,0.4489795918367347,0.009631792334512257
+"tuneada (min_edge=12%, kelly=25%, max_odds=3.0)",2122,63,0.49206349206349204,0.18546162563569138
+"tuneada (min_edge=12%, kelly=25%, max_odds=3.0)",2223,43,0.3488372093023256,-0.1223655533290085
+"tuneada (min_edge=12%, kelly=25%, max_odds=3.0)",2324,14,0.5,0.21741871971954402
+"tuneada (min_edge=12%, kelly=25%, max_odds=3.0)",2425,30,0.5,0.10043494242149309
+"tuneada (min_edge=12%, kelly=25%, max_odds=3.0)",2526,12,0.25,-0.40717226363741854
+"tuneada (min_edge=12%, kelly=25%, max_odds=3.0)",PRIMERA_MITAD,106,0.4339622641509434,0.062113478787912256
+"tuneada (min_edge=12%, kelly=25%, max_odds=3.0)",SEGUNDA_MITAD,56,0.44642857142857145,0.013408065556859586
