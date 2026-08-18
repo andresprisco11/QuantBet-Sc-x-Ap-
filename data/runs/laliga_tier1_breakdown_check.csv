@@ -1,0 +1,29 @@
+Date,fold_test_season,predicted_side,predicted_prob,actual_FTR,acerto,HomeTeam,AwayTeam
+2021-09-22,2122,home,0.8167261210714044,H,True,Real Madrid,Mallorca
+2021-10-30,2122,home,0.8057422381347321,D,False,Barcelona,Alaves
+2021-12-19,2122,home,0.8078685327541201,D,False,Real Madrid,Cadiz
+2022-04-18,2122,home,0.8155939461567252,A,False,Barcelona,Cadiz
+2022-04-24,2122,home,0.8139162460790723,A,False,Barcelona,Vallecano
+2022-05-01,2122,home,0.8383126134513664,H,True,Barcelona,Mallorca
+2022-08-28,2223,home,0.8084343663869928,H,True,Barcelona,Valladolid
+2022-09-17,2223,home,0.8154410898914219,H,True,Barcelona,Elche
+2022-11-05,2223,home,0.8121424674716824,H,True,Barcelona,Almeria
+2022-11-10,2223,home,0.8020460815465094,H,True,Real Madrid,Cadiz
+2023-04-02,2223,home,0.826359802765371,H,True,Real Madrid,Valladolid
+2023-04-29,2223,home,0.8321375571674164,H,True,Real Madrid,Almeria
+2023-09-27,2324,home,0.8001576584244423,H,True,Real Madrid,Las Palmas
+2023-12-02,2324,home,0.811754005776917,H,True,Real Madrid,Granada
+2023-12-20,2324,home,0.8274875794681481,H,True,Barcelona,Almeria
+2024-01-21,2324,home,0.8419130011102708,H,True,Real Madrid,Almeria
+2024-02-11,2324,home,0.8058105034223799,D,False,Barcelona,Granada
+2024-05-14,2324,home,0.8235689021356813,H,True,Real Madrid,Alaves
+2024-08-25,2425,home,0.855361654196498,H,True,Real Madrid,Valladolid
+2024-08-31,2425,home,0.8062467038608058,H,True,Barcelona,Valladolid
+2024-09-21,2425,home,0.847649064831751,H,True,Real Madrid,Espanol
+2024-09-24,2425,home,0.8081055823021966,H,True,Real Madrid,Alaves
+2024-11-03,2425,home,0.8058485333408918,H,True,Barcelona,Espanol
+2024-12-15,2425,home,0.8123341453346788,A,False,Barcelona,Leganes
+2025-01-19,2425,home,0.8167078151505925,H,True,Real Madrid,Las Palmas
+2025-03-29,2425,home,0.8104588129814398,H,True,Real Madrid,Leganes
+2025-04-14,2425,home,0.8290089436261422,H,True,Ath Madrid,Valladolid
+2025-11-02,2526,home,0.8237765263458423,H,True,Barcelona,Elche
