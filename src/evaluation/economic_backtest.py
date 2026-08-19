@@ -45,6 +45,23 @@ distinto Brier de mercado -- ver roadmap, Fase 8). tune_staking_rules.py
 tambien se parametrizo por liga (ver ese script) especificamente para
 poder chequear esto con evidencia antes de asumirlo.
 
+NUEVO (Fase 8, 2026-08-19) -- techo de edge por liga: dos scripts
+exploratorios (`edge_magnitude_calibration_check.py`, luego
+`edge_ceiling_sweep.py`) encontraron y confirmaron, con ROI flat-stake,
+que un TECHO de edge (ademas del piso ya existente de min_edge=8%)
+mejora el resultado real en La Liga, Serie A y Bundesliga -- pero lo
+EMPEORA en EPL, donde el bucket de edge mas extremo (40%+, n=7) tenia el
+mejor ROI de las 4 ligas (+58.43% flat) en vez del peor: cortar la cola
+ahi quita señal real, no ruido. Se adopta como regla oficial, por liga
+(ver MAX_EDGE_CEILING_BY_LEAGUE abajo), pero esa decision se tomo sobre
+ROI flat-stake (apuesta pareja) -- este script es la primera vez que se
+mide el impacto real con Kelly fraccional (el staking que efectivamente
+usa el proyecto), no solo flat. run() ahora corre SIEMPRE la comparacion
+"sin techo" (regla anterior) vs "con techo" (regla adoptada) para
+confirmar o refutar, con el staking real, lo que el barrido flat-stake
+encontro -- no se asume que el resultado se sostiene solo porque se
+sostuvo en flat-stake.
+
 METODOLOGIA (sin cambios, ver el resto del docstring de la version
 anterior para el detalle completo):
 1. Fuente: 'model_predictions_oos_walkforward_v4.csv' (backtest_v4.py),
@@ -56,7 +73,8 @@ anterior para el detalle completo):
    Kelly conservadora y tope duro de stake maximo por apuesta.
 5. Un solo lado por partido: el de mayor edge positivo, si supera
    min_edge_threshold (y si max_odds no es None, solo se consideran
-   candidatos con cuota <= max_odds).
+   candidatos con cuota <= max_odds; y si max_edge_ceiling no es None,
+   se descarta si el edge del mejor lado supera ese techo).
 6. CLV calculado explicitamente: pinnacle_close_prob_lado -
    pinnacle_open_prob_lado del lado apostado.
 7. Bankroll compuesto, cronologico, con drawdown maximo medido sobre la
@@ -78,6 +96,16 @@ MAX_STAKE_FRACTION = 0.05      # tope duro: nunca mas del 5% del bankroll actual
 MAX_ODDS = 3.0                 # tuneado sobre EPL (ver docstring) -- default global, a validar por liga.
 INITIAL_BANKROLL = 1000.0      # unidades arbitrarias -- lo que importa es el multiplo final, no la moneda.
 
+# Techo de edge por liga -- decision del CTO, 2026-08-19 (ver
+# edge_magnitude_calibration_check.py y edge_ceiling_sweep.py). None =
+# sin techo (EPL: el techo empeora el resultado, no se adopta ahi).
+MAX_EDGE_CEILING_BY_LEAGUE = {
+    "EPL": None,
+    "LALIGA": 0.25,
+    "SERIEA": 0.25,
+    "BUNDESLIGA": 0.30,
+}
+
 SIDES = [
     ("home", "PSH", "blend_prob_home", "pinnacle_open_prob_home", "pinnacle_close_prob_home", "H"),
     ("draw", "PSD", "blend_prob_draw", "pinnacle_open_prob_draw", "pinnacle_close_prob_draw", "D"),
@@ -86,12 +114,14 @@ SIDES = [
 
 
 def _select_bets(df: pd.DataFrame, min_edge_threshold: float = MIN_EDGE_THRESHOLD,
-                  max_odds: float = MAX_ODDS) -> pd.DataFrame:
+                  max_odds: float = MAX_ODDS, max_edge_ceiling: float = None) -> pd.DataFrame:
     """
     Para cada partido, calcula el edge de los 3 resultados posibles (solo
     considerando los que tengan cuota <= max_odds, si se especifica) y
-    selecciona el de mayor edge SI supera min_edge_threshold. Partidos sin
-    ningun edge suficiente quedan fuera del backtest economico.
+    selecciona el de mayor edge SI supera min_edge_threshold Y (si
+    max_edge_ceiling no es None) no lo supera. Partidos sin ningun edge
+    suficiente, o cuyo unico candidato tiene un edge mayor al techo,
+    quedan fuera del backtest economico.
     """
     records = []
     for _, row in df.iterrows():
@@ -114,19 +144,22 @@ def _select_bets(df: pd.DataFrame, min_edge_threshold: float = MIN_EDGE_THRESHOL
                     "close_prob": row[close_prob_col],
                     "ftr_code": ftr_code,
                 }
-        if best is not None and best["edge"] > min_edge_threshold:
-            kelly_full = (best["fair_prob"] * best["odds"] - 1.0) / (best["odds"] - 1.0)
-            record = row.to_dict()
-            record.update({
-                "bet_side": best["side"],
-                "bet_odds": best["odds"],
-                "bet_fair_prob": best["fair_prob"],
-                "bet_edge": best["edge"],
-                "kelly_full": kelly_full,
-                "clv": best["close_prob"] - best["open_prob"],
-                "won": row["FTR"] == best["ftr_code"],
-            })
-            records.append(record)
+        if best is None or best["edge"] <= min_edge_threshold:
+            continue
+        if max_edge_ceiling is not None and best["edge"] > max_edge_ceiling:
+            continue
+        kelly_full = (best["fair_prob"] * best["odds"] - 1.0) / (best["odds"] - 1.0)
+        record = row.to_dict()
+        record.update({
+            "bet_side": best["side"],
+            "bet_odds": best["odds"],
+            "bet_fair_prob": best["fair_prob"],
+            "bet_edge": best["edge"],
+            "kelly_full": kelly_full,
+            "clv": best["close_prob"] - best["open_prob"],
+            "won": row["FTR"] == best["ftr_code"],
+        })
+        records.append(record)
     return pd.DataFrame(records)
 
 
@@ -199,6 +232,36 @@ def _print_breakdown(bets: pd.DataFrame, group_col: str, label: str):
     print(grouped.round(4).to_string())
 
 
+def _run_single(league_key: str, df_eval: pd.DataFrame, max_edge_ceiling: float) -> dict:
+    """Corre seleccion + simulacion de bankroll UNA vez, con el techo de edge dado.
+    No imprime ni loguea nada -- eso lo maneja run(), que la usa dos veces (con y sin techo)."""
+    bets = _select_bets(df_eval, min_edge_threshold=MIN_EDGE_THRESHOLD, max_odds=MAX_ODDS,
+                         max_edge_ceiling=max_edge_ceiling)
+    n_bets = len(bets)
+    if n_bets == 0:
+        return {"n_bets": 0, "bets": bets}
+
+    bets = _simulate_bankroll(bets, kelly_fraction=KELLY_FRACTION, max_stake_fraction=MAX_STAKE_FRACTION,
+                               initial_bankroll=INITIAL_BANKROLL)
+    final_bankroll = bets["bankroll_after"].iloc[-1]
+    total_staked = bets["stake"].sum()
+    total_profit = bets["profit"].sum()
+    roi = total_profit / total_staked if total_staked > 0 else float("nan")
+
+    return {
+        "bets": bets,
+        "n_bets": n_bets,
+        "final_bankroll": final_bankroll,
+        "total_staked": total_staked,
+        "total_profit": total_profit,
+        "roi": roi,
+        "win_rate": bets["won"].mean(),
+        "max_drawdown": bets["drawdown"].max(),
+        "avg_clv": bets["clv"].mean(),
+        "clv_positive_pct": (bets["clv"] > 0).mean(),
+    }
+
+
 def run(league_key: str) -> None:
     print(f"\n=== {league_key} ===")
     try:
@@ -209,35 +272,58 @@ def run(league_key: str) -> None:
 
     print(f"Partidos con blend disponible (cuota de cierre presente): {len(df_eval)}")
 
-    bets = _select_bets(df_eval, min_edge_threshold=MIN_EDGE_THRESHOLD, max_odds=MAX_ODDS)
-    n_bets = len(bets)
-    n_skipped = len(df_eval) - n_bets
-    print(f"Partidos con edge > {MIN_EDGE_THRESHOLD:.0%}: {n_bets} apostados, {n_skipped} descartados (sin valor suficiente)")
+    ceiling = MAX_EDGE_CEILING_BY_LEAGUE.get(league_key)
 
-    if n_bets == 0:
+    # Siempre se corre la comparacion "sin techo" (regla anterior a Fase 8,
+    # 2026-08-19) vs "con techo" (regla adoptada) para confirmar con Kelly
+    # real -- no solo flat-stake -- lo que edge_ceiling_sweep.py encontro.
+    baseline = _run_single(league_key, df_eval, max_edge_ceiling=None)
+    if ceiling is not None:
+        adopted = _run_single(league_key, df_eval, max_edge_ceiling=ceiling)
+    else:
+        adopted = baseline  # EPL: la regla adoptada ES "sin techo".
+
+    if adopted["n_bets"] == 0:
         print(f"\n[AVISO] {league_key}: cero apuestas seleccionadas con el umbral actual -- no hay backtest "
               f"economico que correr. Prueba bajando MIN_EDGE_THRESHOLD si esto es inesperado.")
         return
 
-    bets = _simulate_bankroll(bets, kelly_fraction=KELLY_FRACTION, max_stake_fraction=MAX_STAKE_FRACTION,
-                               initial_bankroll=INITIAL_BANKROLL)
+    print(f"Partidos con edge > {MIN_EDGE_THRESHOLD:.0%}: {adopted['n_bets']} apostados "
+          f"(regla vigente: techo={'sin techo' if ceiling is None else f'<={ceiling:.0%}'})")
 
-    final_bankroll = bets["bankroll_after"].iloc[-1]
-    total_staked = bets["stake"].sum()
-    total_profit = bets["profit"].sum()
-    roi = total_profit / total_staked if total_staked > 0 else float("nan")
-    win_rate = bets["won"].mean()
-    max_drawdown = bets["drawdown"].max()
-    avg_clv = bets["clv"].mean()
-    clv_positive_pct = (bets["clv"] > 0).mean()
+    if ceiling is not None:
+        print(f"\n--- Comparacion Kelly real: sin techo (regla anterior) vs <={ceiling:.0%} (regla adoptada, "
+              f"2026-08-19) ---")
+        print(f"  {'':16s} {'n':>5s} {'roi':>9s} {'bankroll_final':>15s} {'drawdown_max':>13s}")
+        for tag, res in [("sin techo", baseline), (f"<={ceiling:.0%}", adopted)]:
+            if res["n_bets"] == 0:
+                print(f"  {tag:16s} {'--':>5s} {'--':>9s} {'--':>15s} {'--':>13s}")
+                continue
+            print(f"  {tag:16s} {res['n_bets']:5d} {res['roi']:9.2%} "
+                  f"{res['final_bankroll']:15.2f} {res['max_drawdown']:13.2%}")
+        delta_roi = adopted["roi"] - baseline["roi"]
+        print(f"  delta de ROI (Kelly real): {delta_roi:+.2%}")
+        print(f"  Nota: edge_ceiling_sweep.py (2026-08-19) habia medido esto con ROI flat-stake -- este es "
+              f"el primer chequeo con el staking Kelly real que usa el proyecto en produccion.")
+
+    bets = adopted["bets"]
+    final_bankroll = adopted["final_bankroll"]
+    n_bets = adopted["n_bets"]
+    n_skipped = len(df_eval) - n_bets
+    roi = adopted["roi"]
+    win_rate = adopted["win_rate"]
+    max_drawdown = adopted["max_drawdown"]
+    avg_clv = adopted["avg_clv"]
+    clv_positive_pct = adopted["clv_positive_pct"]
 
     print(f"\n=== Resultado del backtest economico [{league_key}] (v4, Kelly fraccional {KELLY_FRACTION:.0%}, "
-          f"umbral de edge {MIN_EDGE_THRESHOLD:.0%}, tope de cuota {MAX_ODDS if MAX_ODDS else 'sin tope'}) ===")
+          f"umbral de edge {MIN_EDGE_THRESHOLD:.0%}, tope de cuota {MAX_ODDS if MAX_ODDS else 'sin tope'}, "
+          f"techo de edge {'sin techo' if ceiling is None else f'<={ceiling:.0%}'}) ===")
     print(f"Apuestas simuladas:                {n_bets}")
     print(f"Bankroll inicial:                  {INITIAL_BANKROLL:.2f}")
     print(f"Bankroll final:                    {final_bankroll:.2f}  ({final_bankroll / INITIAL_BANKROLL:.3f}x)")
-    print(f"Total apostado (suma de stakes):   {total_staked:.2f}")
-    print(f"Profit total:                      {total_profit:.2f}")
+    print(f"Total apostado (suma de stakes):   {adopted['total_staked']:.2f}")
+    print(f"Profit total:                      {adopted['total_profit']:.2f}")
     print(f"ROI (profit / total apostado):     {roi:.2%}")
     print(f"Win rate:                          {win_rate:.2%}")
     print(f"Drawdown maximo:                   {max_drawdown:.2%}")
@@ -256,7 +342,7 @@ def run(league_key: str) -> None:
 
     out_path = PROCESSED_DATA_DIR / league_key / "economic_backtest_v4_bets.csv"
     bets.to_csv(out_path, index=False)
-    print(f"\nGuardado detalle apuesta por apuesta -> {out_path}")
+    print(f"\nGuardado detalle apuesta por apuesta (regla vigente, con techo si aplica) -> {out_path}")
 
     log_run(
         script="economic_backtest.py",
@@ -271,6 +357,7 @@ def run(league_key: str) -> None:
             "min_edge_threshold": MIN_EDGE_THRESHOLD,
             "max_stake_fraction": MAX_STAKE_FRACTION,
             "max_odds": MAX_ODDS,
+            "max_edge_ceiling": ceiling,
             "initial_bankroll": INITIAL_BANKROLL,
             "execution_price": "Pinnacle apertura (PSH/PSD/PSA)",
         },
@@ -283,11 +370,16 @@ def run(league_key: str) -> None:
             "max_drawdown": max_drawdown,
             "avg_clv": avg_clv,
             "clv_positive_pct": clv_positive_pct,
+            "roi_baseline_sin_techo": baseline["roi"] if baseline["n_bets"] > 0 else None,
+            "delta_roi_vs_sin_techo": (roi - baseline["roi"]) if (ceiling is not None and baseline["n_bets"] > 0) else 0.0,
         },
         predictions_path=out_path,
         notes=f"[{league_key}] Corrida del framework multi-metrica (CLV + Kelly fraccional + drawdown + "
               "robustez por temporada/rango de cuota/lado) sobre v4. Hiperparametros de staking tuneados "
-              "sobre EPL (Fase 3.5) -- todavia no re-validados especificamente para esta liga si no es EPL.",
+              "sobre EPL (Fase 3.5) -- todavia no re-validados especificamente para esta liga si no es EPL. "
+              f"Techo de edge por liga (Fase 8, 2026-08-19) {'no aplica a EPL' if ceiling is None else f'adoptado en <={ceiling:.0%}'} "
+              "-- ver comparacion sin techo/con techo impresa arriba y edge_ceiling_sweep.py para el hallazgo "
+              "original en flat-stake.",
     )
 
 
