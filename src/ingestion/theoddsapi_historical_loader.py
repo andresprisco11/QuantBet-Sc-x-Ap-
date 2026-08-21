@@ -57,6 +57,7 @@ Uso:
     python -m src.ingestion.theoddsapi_historical_loader --check-sports
     python -m src.ingestion.theoddsapi_historical_loader --check-credits
     python -m src.ingestion.theoddsapi_historical_loader --sport NBA --start-date 2024-10-22 --end-date 2025-04-13 --max-credits 2000
+    python -m src.ingestion.theoddsapi_historical_loader --sport NBA --start-date 2020-10-01 --end-date 2026-08-21 --max-credits 15000 --only-game-days
 """
 import argparse
 import sys
@@ -68,9 +69,37 @@ import pandas as pd
 import requests
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
-from config.settings import RAW_DATA_DIR
+from config.settings import PROCESSED_DATA_DIR, RAW_DATA_DIR
 
 BASE_URL = "https://api.the-odds-api.com/v4"
+
+# Fuentes de calendario REAL por deporte (ya construidas por sus propios loaders de
+# resultados) -- usado por --only-game-days para NO gastar creditos en dias muertos
+# de la agenda (fuera de temporada). Hallazgo real que motiva esto (2026-08-21,
+# no una suposicion): de los primeros 300 dias bajados de NBA (2020-10-01 en
+# adelante), un tramo largo (oct-dic 2020) resulto ser el hueco real entre el
+# ultimo partido de las Finals 2020 (burbuja de Orlando, retrasada por COVID) y el
+# arranque real de la temporada 2020-21 (22 de diciembre de 2020, confirmado con
+# datos reales) -- creditos gastados en dias sin partidos reales de liga.
+GAME_DATE_SOURCES = {
+    "NBA": (PROCESSED_DATA_DIR / "NBA" / "games_clean.csv", "game_date"),
+    "NFL": (PROCESSED_DATA_DIR / "NFL" / "matches_clean.csv", "gameday"),
+}
+
+
+def _load_real_game_dates(sport_name: str):
+    """Devuelve el set de fechas reales con partido (segun el loader de resultados
+    de ESE deporte, ya confirmado con datos reales), o None si no hay fuente
+    todavia para ese deporte -- en ese caso --only-game-days no tiene efecto y se
+    avisa explicitamente, no se falla silenciosamente."""
+    entry = GAME_DATE_SOURCES.get(sport_name)
+    if entry is None:
+        return None
+    path, col = entry
+    if not path.exists():
+        return None
+    df = pd.read_csv(path, usecols=[col])
+    return set(pd.to_datetime(df[col]).dt.strftime("%Y-%m-%d"))
 
 # Solo NBA esta confirmado con una llamada real (probe de theoddsapi_loader.py,
 # 2026-08-21). NFL y MLS son los sport_key documentados por el vendor, sin
@@ -158,15 +187,31 @@ def download_historical_range(
     markets: str = "h2h",
     snapshot_hour_utc: int = 23,
     max_credits: int = 2000,
+    only_game_days: bool = False,
 ) -> None:
     """Descarga un snapshot por dia (cerca de snapshot_hour_utc) entre start_date y
     end_date, guardando incrementalmente (mismo patron resumible que
     thestatsapi_xg_loader.py -- si se corta a mitad de camino, la proxima corrida
-    retoma desde el ultimo dia ya guardado, no repite trabajo ni gasta creditos de mas)."""
+    retoma desde el ultimo dia ya guardado, no repite trabajo ni gasta creditos de mas).
+
+    only_game_days=True filtra contra el calendario REAL de partidos (ver
+    GAME_DATE_SOURCES) para no gastar creditos en dias sin partidos -- ver docstring
+    del archivo, hallazgo real del 2026-08-21 (hueco oct-dic 2020 de NBA)."""
     sport_key = SPORT_KEYS.get(sport_name)
     if sport_key is None:
         print(f"[ERROR] '{sport_name}' no esta en SPORT_KEYS: {list(SPORT_KEYS)}")
         return
+
+    real_game_dates = None
+    if only_game_days:
+        real_game_dates = _load_real_game_dates(sport_name)
+        if real_game_dates is None:
+            print(f"[AVISO] --only-game-days pedido pero no hay fuente de calendario real "
+                  f"todavia para {sport_name} (ver GAME_DATE_SOURCES) -- se ignora el filtro, "
+                  f"se baja dia por dia sin saltar nada.")
+        else:
+            print(f"Calendario real cargado: {len(real_game_dates)} dias con partido confirmado "
+                  f"para {sport_name}.")
 
     n_markets = len(markets.split(","))
     n_regions = len(regions.split(","))
@@ -189,11 +234,15 @@ def download_historical_range(
     rows_buffer = []
     days_done = 0
     days_skipped = 0
+    days_skipped_no_game = 0
 
     for day in _daterange(start, end, 1):
         date_str = day.strftime("%Y-%m-%d")
         if date_str in done_dates:
             days_skipped += 1
+            continue
+        if real_game_dates is not None and date_str not in real_game_dates:
+            days_skipped_no_game += 1
             continue
 
         if credits_spent + cost_per_snapshot > max_credits:
@@ -257,6 +306,7 @@ def download_historical_range(
         time.sleep(REQUEST_DELAY_SECONDS)
 
     print(f"\n{days_done} dias nuevos descargados, {days_skipped} ya estaban, "
+          f"{days_skipped_no_game} saltados por no tener partido real (--only-game-days), "
           f"{credits_spent} creditos gastados en esta corrida -> {out_path}")
 
 
@@ -270,6 +320,10 @@ if __name__ == "__main__":
     parser.add_argument("--regions", default="us")
     parser.add_argument("--markets", default="h2h")
     parser.add_argument("--max-credits", type=int, default=2000)
+    parser.add_argument("--only-game-days", action="store_true",
+                         help="Salta dias sin partido real segun el calendario ya confirmado "
+                              "por el loader de resultados de ese deporte (ver GAME_DATE_SOURCES) "
+                              "-- ahorra creditos reales en huecos de fuera de temporada.")
     args = parser.parse_args()
 
     if args.check_sports:
@@ -280,6 +334,7 @@ if __name__ == "__main__":
         download_historical_range(
             args.sport, args.start_date, args.end_date,
             regions=args.regions, markets=args.markets, max_credits=args.max_credits,
+            only_game_days=args.only_game_days,
         )
     else:
         parser.print_help()
