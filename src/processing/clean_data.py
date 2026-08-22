@@ -30,7 +30,9 @@ archivo:
    ambas) el resultado es idéntico a antes.
 """
 
+import difflib
 import sys
+import unicodedata
 from pathlib import Path
 
 import pandas as pd
@@ -53,6 +55,120 @@ MLS_RAW_COLUMN_MAP = {
     "Res": "FTR",
     "Season": "season",
 }
+
+
+# --- Canonicalizacion de nombres de equipo -------------------------------
+# BUG REAL encontrado el 2026-08-22 al descargar la temporada 2026-27:
+# football-data.co.uk NO usa un nombre estable para un mismo club entre
+# temporadas, y en LaLiga incluso DENTRO del mismo archivo. Confirmado con
+# datos reales del crudo (data/raw/LALIGA/2627.csv, 7 partidos):
+#   - 'Vallecano' (15/08/2026, vs Sevilla) y 'Rayo Vallecano' (20/08/2026,
+#     vs Alaves) son el MISMO club, en el MISMO archivo, con 5 dias de
+#     diferencia.
+#   - 'Ath Madrid' (6 temporadas, 2020-2026) pasa a 'Atl. Madrid' en 2026-27.
+#
+# Por que esto NO es cosmetico: el modelo Poisson usa 'C(team)' como
+# categorica (ver poisson_model_v4.py). Dos strings distintos = DOS
+# coeficientes de equipo distintos. Sin esta correccion, el Atletico entrena
+# un coeficiente nuevo con 1 partido mientras sus 6 temporadas de historia
+# quedan huerfanas bajo el nombre viejo -- y el modelo cotiza un equipo que
+# no existe.
+#
+# Direccion del mapeo: SIEMPRE hacia el nombre con historia (el viejo), no
+# hacia el nuevo -- el objetivo es preservar las temporadas ya acumuladas.
+#
+# Cada entrada aca esta VERIFICADA contra los crudos reales, no supuesta.
+# Para lo que todavia no este verificado esta _detect_name_drift() abajo,
+# que avisa en cada corrida en vez de dejar que se corrompa en silencio.
+TEAM_NAME_CANONICAL = {
+    "LALIGA": {
+        "Rayo Vallecano": "Vallecano",   # confirmado: ambos en 2627.csv, mismo club
+        "Atl. Madrid": "Ath Madrid",     # confirmado: 'Ath Madrid' en 2021-2526, 'Atl. Madrid' desde 2627
+    },
+    "EPL": {},
+    "SERIEA": {},
+    "BUNDESLIGA": {},
+    "MLS": {},
+}
+
+# Umbral de similitud para sospechar que dos nombres son el mismo club.
+# 0.80 medido contra las 4 ligas reales (2026-08-22): atrapa los 2 casos
+# reales ('Ath Madrid'/'Atl. Madrid' con 0.86, y 'Rayo Vallecano'/
+# 'Vallecano' por contencion) y produce 1 falso positivo
+# ('Atl. Madrid'/'Real Madrid', 0.82) porque en una temporada recien
+# empezada todavia no se enfrentaron.
+#
+# Se deja en 0.80 a proposito y NO se sube para eliminar ese falso
+# positivo: este detector solo AVISA, nunca corrige solo. Un falso
+# positivo cuesta una linea de salida que se descarta a mano; un falso
+# negativo cuesta un club partido en dos coeficientes y un modelo
+# corrompido en silencio. La asimetria manda.
+NAME_DRIFT_SIMILARITY = 0.80
+
+
+def _normalize_name(name: str) -> str:
+    nfkd = unicodedata.normalize("NFKD", str(name))
+    return "".join(c for c in nfkd if not unicodedata.combining(c)).lower().strip()
+
+
+def _canonicalize_team_names(df: pd.DataFrame, league_key: str) -> pd.DataFrame:
+    """Unifica los nombres de club que la fuente escribe de mas de una forma
+    (ver TEAM_NAME_CANONICAL). Reporta cuantas filas toco, para que el
+    cambio quede visible en la salida y no sea una transformacion silenciosa."""
+    mapping = TEAM_NAME_CANONICAL.get(league_key, {})
+    if not mapping:
+        return df
+    out = df.copy()
+    for col in ["HomeTeam", "AwayTeam"]:
+        n_touched = out[col].isin(mapping).sum()
+        if n_touched:
+            for viejo, nuevo in mapping.items():
+                afectadas = (out[col] == viejo).sum()
+                if afectadas:
+                    print(f"  [CANONICAL] {league_key}.{col}: '{viejo}' -> '{nuevo}' "
+                          f"({afectadas} filas)")
+            out[col] = out[col].replace(mapping)
+    return out
+
+
+def _detect_name_drift(df: pd.DataFrame, league_key: str) -> None:
+    """Detector automatico de nombres que probablemente sean el MISMO club
+    escrito distinto -- lo que importa a futuro, porque esto va a volver a
+    pasar cada vez que la fuente cambie una convencion.
+
+    Heuristica, con la segunda condicion haciendo el trabajo pesado:
+      1. Los dos nombres son parecidos: uno contiene al otro, o su
+         similitud de secuencia supera NAME_DRIFT_SIMILARITY.
+      2. **Nunca jugaron entre si.** Un club no puede enfrentarse a si
+         mismo, asi que dos nombres parecidos que SI se enfrentaron son
+         clubes distintos con seguridad. Esto es lo que evita marcar
+         'Man City'/'Man United' o 'Ath Bilbao'/'Ath Madrid'.
+
+    Solo avisa -- no corrige nada por su cuenta. Lo que reporte hay que
+    verificarlo a mano y, si es real, agregarlo a TEAM_NAME_CANONICAL."""
+    teams = sorted(set(df["HomeTeam"].dropna()).union(set(df["AwayTeam"].dropna())))
+    enfrentamientos = set()
+    for h, a in zip(df["HomeTeam"], df["AwayTeam"]):
+        enfrentamientos.add(frozenset((h, a)))
+
+    sospechas = []
+    for i, a in enumerate(teams):
+        for b in teams[i + 1:]:
+            if frozenset((a, b)) in enfrentamientos:
+                continue  # se enfrentaron -> clubes distintos, seguro
+            na, nb = _normalize_name(a), _normalize_name(b)
+            contiene = na in nb or nb in na
+            ratio = difflib.SequenceMatcher(None, na, nb).ratio()
+            if contiene or ratio >= NAME_DRIFT_SIMILARITY:
+                sospechas.append((a, b, ratio, contiene))
+
+    if sospechas:
+        print(f"  [AVISO DE DERIVA DE NOMBRES] {league_key}: {len(sospechas)} par(es) de nombres "
+              f"parecidos que NUNCA se enfrentaron -- posible mismo club escrito de dos formas. "
+              f"Verificar y, si corresponde, agregar a TEAM_NAME_CANONICAL:")
+        for a, b, ratio, contiene in sospechas:
+            motivo = "uno contiene al otro" if contiene else f"similitud {ratio:.2f}"
+            print(f"     '{a}'  <->  '{b}'   ({motivo})")
 
 
 def _normalize_mls_raw(df: pd.DataFrame) -> pd.DataFrame:
@@ -168,6 +284,12 @@ def clean_league(league_key: str) -> Path:
     missing_core = [c for c in CORE_COLUMNS if c not in df.columns]
     if missing_core:
         raise ValueError(f"Faltan columnas core en {league_key}: {missing_core}")
+
+    # Unificar nombres de club ANTES de cualquier otra cosa -- todo lo que
+    # viene aguas abajo (features de forma, C(team) del Poisson, Elo) asume
+    # que un club = un string. Ver TEAM_NAME_CANONICAL.
+    df = _canonicalize_team_names(df, league_key)
+    _detect_name_drift(df, league_key)
 
     n_before = len(df)
     df["Date"] = pd.to_datetime(df["Date"], dayfirst=True, errors="coerce")
