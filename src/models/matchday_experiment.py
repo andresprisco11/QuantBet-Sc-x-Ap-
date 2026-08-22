@@ -94,7 +94,26 @@ MAX_ODDS_DECIMAL = 3.0
 MAX_EDGE_CEILING_BY_LEAGUE = {"EPL": None, "LALIGA": 0.25, "SERIEA": 0.25, "BUNDESLIGA": 0.30}
 
 TIER1_THRESHOLD = 0.80  # gate real del proyecto (mandato original) para una sola pierna.
-STALE_FORM_DAYS = 45  # si el ultimo partido real de un equipo es mas viejo que esto, se avisa.
+
+# --- Frescura de datos: AVISO vs EXCLUSION DURA -------------------------
+# STALE_FORM_DAYS (solo aviso): el hueco natural entre temporadas es de
+# ~90-100 dias, asi que por encima de 45 ya merece marca visible.
+#
+# MAX_STALE_DAYS (EXCLUSION DURA, agregado 2026-08-22 tras la primera
+# corrida real con cuotas en vivo): si el ultimo partido de un equipo EN
+# ESTA LIGA es de hace mas de 200 dias, no jugo una temporada entera aca --
+# su coeficiente de equipo en el Poisson viene de una era distinta del club
+# y NO es utilizable. Medido con datos reales (ver roadmap): un equipo que
+# jugo la temporada pasada queda en <=110d; uno que descendio hace una
+# temporada salta a ~455d; casos como Schalke 04 (1183d), Frosinone (818d)
+# o Sheffield United (825d) llevan 2-3+ años sin jugar en primera. 200d
+# separa limpiamente los dos grupos, sin zona gris.
+#
+# Esto NO es cautela generica: en la primera corrida real la UNICA apuesta
+# que califico (Augsburg vs Schalke 04, edge +10.2%, Kelly 0.87%) salia
+# enteramente de modelar al Schalke de 2023 contra la cuota real de 2026.
+STALE_FORM_DAYS = 45
+MAX_STALE_DAYS = 200
 
 # --- Alias API (The Odds API) -> football-data.co.uk ---------------------
 # Escritos de memoria a partir de las convenciones publicas conocidas de
@@ -120,6 +139,10 @@ TEAM_ALIASES = {
     "Deportivo Alavés": "Alaves", "Alavés": "Alaves", "Real Valladolid": "Valladolid",
     "CA Osasuna": "Osasuna", "Girona FC": "Girona", "RCD Mallorca": "Mallorca",
     "UD Las Palmas": "Las Palmas", "Cadiz CF": "Cadiz",
+    # CONFIRMADOS faltantes en la corrida real del 2026-08-22 -- ambos SI
+    # existen en el dataset, era puro hueco de alias (no equipos ausentes).
+    "Real Racing Club de Santander": "Santander", "Racing Santander": "Santander",
+    "Deportivo La Coruña": "Dep. A Coruna", "Deportivo La Coruna": "Dep. A Coruna",
     # Serie A
     "Inter Milan": "Inter", "AC Milan": "Milan", "AS Roma": "Roma", "SS Lazio": "Lazio",
     "Hellas Verona": "Verona", "Cagliari Calcio": "Cagliari", "Genoa CFC": "Genoa",
@@ -133,6 +156,7 @@ TEAM_ALIASES = {
     "VfL Wolfsburg": "Wolfsburg", "Borussia Mönchengladbach": "M'gladbach",
     "Borussia Monchengladbach": "M'gladbach", "1. FC Union Berlin": "Union Berlin",
     "SC Freiburg": "Freiburg", "1. FSV Mainz 05": "Mainz", "Mainz 05": "Mainz",
+    "FSV Mainz 05": "Mainz",  # CONFIRMADO faltante en la corrida real del 2026-08-22
     "TSG Hoffenheim": "Hoffenheim", "1899 Hoffenheim": "Hoffenheim",
     "FC Augsburg": "Augsburg", "1. FC Köln": "FC Koln", "1. FC Koln": "FC Koln",
     "FC St. Pauli": "St Pauli", "St. Pauli": "St Pauli", "VfL Bochum": "Bochum",
@@ -269,11 +293,47 @@ def main():
 
         for row in mapped_rows:
             if row["home_fd"] is None or row["away_fd"] is None:
-                print(f"[DESCARTADO -- nombre sin resolver] {row['home_team']} vs {row['away_team']}: "
-                      f"agregar a TEAM_ALIASES manualmente y volver a correr.")
+                # Dos causas MUY distintas, no confundirlas (hallazgo real de la
+                # corrida del 2026-08-22): (a) hueco de alias -- el equipo SI
+                # esta en el dataset y solo falta el nombre en TEAM_ALIASES
+                # (ej. 'FSV Mainz 05' -> 'Mainz'); (b) el equipo NO existe en el
+                # historico de esta liga, tipicamente un recien ascendido
+                # (ej. Coventry, Elversberg, Paderborn) -- ahi NO hay alias que
+                # agregar, y forzarlo solo meteria un equipo que el modelo no
+                # puede evaluar. Descartar es lo correcto en ese caso.
+                sin_resolver = [n for n, fd in [(row["home_team"], row["home_fd"]),
+                                                (row["away_team"], row["away_fd"])] if fd is None]
+                print(f"[DESCARTADO -- nombre sin resolver] {row['home_team']} vs {row['away_team']} "
+                      f"(sin resolver: {', '.join(sin_resolver)}). Revisar si es (a) alias faltante de un "
+                      f"equipo que SI esta en el historico, o (b) equipo sin historial en esta liga "
+                      f"(recien ascendido) -- en el caso (b) el descarte es correcto, no agregar alias.")
                 continue
 
             home_fd, away_fd = row["home_fd"], row["away_fd"]
+
+            # --- EXCLUSION DURA por datos obsoletos (ver MAX_STALE_DAYS) ---
+            # Se evalua ANTES de predecir: si el rating de alguno de los dos
+            # equipos viene de una era distinta del club, la prediccion no es
+            # interpretable y no debe entrar al pipeline de apuestas ni al CSV.
+            stale_flag = ""
+            too_stale = []
+            for team_fd, side in [(home_fd, "local"), (away_fd, "visita")]:
+                ld = last_date.get(team_fd)
+                if ld is None or pd.isna(ld):
+                    continue
+                gap_days = (now_utc.replace(tzinfo=None) - ld).days
+                if gap_days > MAX_STALE_DAYS:
+                    too_stale.append(f"{team_fd} ({side}, {gap_days}d)")
+                elif gap_days > STALE_FORM_DAYS:
+                    stale_flag += (f" [AVISO: forma de {team_fd} ({side}) desactualizada, "
+                                   f"ultimo partido real hace {gap_days}d]")
+            if too_stale:
+                print(f"[DESCARTADO -- datos inutilizables] {home_fd} vs {away_fd}: "
+                      f"{'; '.join(too_stale)} sin jugar en esta liga hace mas de {MAX_STALE_DAYS}d. "
+                      f"El coeficiente de equipo del Poisson viene de una era distinta del club -- "
+                      f"la prediccion no seria interpretable, se descarta (no se guarda en el CSV).")
+                continue
+
             lh, la, ph, pd_, pa, matrix, home_label, away_label = predict(model, known_teams, form, home_fd, away_fd)
 
             decimal_home, decimal_draw, decimal_away = row["decimal_home"], row["decimal_draw"], row["decimal_away"]
@@ -296,13 +356,6 @@ def main():
             bh, bd, ba = blended["prob_home"].iloc[0], blended["prob_draw"].iloc[0], blended["prob_away"].iloc[0]
 
             promoted_flag = " [PROMOTED_TEAM -- sin historial real]" if home_label == PROMOTED_LABEL or away_label == PROMOTED_LABEL else ""
-            stale_flag = ""
-            for team_fd, side in [(home_fd, "local"), (away_fd, "visita")]:
-                ld = last_date.get(team_fd)
-                if ld is not None and not pd.isna(ld):
-                    gap_days = (now_utc.replace(tzinfo=None) - ld).days
-                    if gap_days > STALE_FORM_DAYS:
-                        stale_flag += f" [AVISO: forma de {team_fd} ({side}) desactualizada, ultimo partido real hace {gap_days}d]"
 
             print(f"\n=== {home_fd} vs {away_fd} ({league_key}) -- {row['commence_time']}{promoted_flag}{stale_flag} ===")
             print(f"lambda_home={lh:.2f} lambda_away={la:.2f}  (peso del mercado en el blend: {market_weight:.1%})")
