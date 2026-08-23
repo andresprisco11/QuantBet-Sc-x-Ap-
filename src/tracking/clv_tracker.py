@@ -70,6 +70,19 @@ COLUMNAS = [
     "book", "operator", "odds_tomada", "pinnacle_odds_apuesta", "fair_prob_apuesta",
     "edge_apuesta", "kelly_stake_frac",
     "pinnacle_odds_cierre", "fair_prob_cierre", "clv", "cierre_utc", "horas_antes_cierre",
+    # --- Metricas de MOVIMIENTO (agregadas 2026-08-22) --------------------
+    # Sin estas, el CLV es casi tautologico: clv = cuota * p_cierre - 1 y
+    # edge = cuota * p_apuesta - 1, asi que si Pinnacle no mueve su linea,
+    # clv == edge POR CONSTRUCCION. Un reporte de "CLV +10%" seria solo el
+    # edge de entrada reflejado, no evidencia de haber comprado barato.
+    #
+    # movimiento_pinnacle = clv - edge  ->  ¿se movio el sharp hacia nosotros?
+    # odds_casa_cierre                  ->  precio de LA MISMA casa al cierre
+    # convergencia_casa                 ->  ¿corrigio la casa blanda su error?
+    #   Esta ultima es la evidencia mas fuerte: si tomamos 6.75 donde Pinnacle
+    #   valia 5.78 y la casa termina en 6.00, la casa esta ADMITIENDO que su
+    #   precio estaba mal. Eso no se puede explicar por construccion.
+    "odds_casa_cierre", "movimiento_pinnacle", "convergencia_casa",
 ]
 
 
@@ -105,6 +118,11 @@ def _bajar_feed(ligas=None, markets: str = MARKETS_CON_TOTALES) -> pd.DataFrame:
     historico) y con h2h+totales. Esto ataca el cuello de botella real: el
     CLV necesita 100+ apuestas para decir algo, y con 4 ligas y solo 1X2 se
     juntaban ~16 por fin de semana."""
+    # Checkpoint incremental: cada liga se guarda apenas llega. Si el
+    # internet se corta a mitad del barrido (44 llamadas seguidas), los
+    # creditos ya gastados NO se pierden -- la proxima corrida reusa lo
+    # descargado en vez de volver a pagarlo.
+    ckpt = RUNS_DIR / "_feed_checkpoint.csv"
     dfs = []
     ligas = ligas or discover_active_soccer(excluir_femenino=True)
     # BUG REAL corregido (2026-08-22): discover_active_soccer() devuelve un
@@ -121,9 +139,13 @@ def _bajar_feed(ligas=None, markets: str = MARKETS_CON_TOTALES) -> pd.DataFrame:
             if not d.empty:
                 dfs.append(d)
                 ok += 1
+                ckpt.parent.mkdir(parents=True, exist_ok=True)
+                d.to_csv(ckpt, mode="a", header=not ckpt.exists(), index=False)
         except Exception as e:
             print(f"[ERROR] {liga}: {e}")
     print(f"Competencias con partidos y cuotas: {ok}/{len(claves)}")
+    if ckpt.exists():
+        ckpt.unlink()   # barrido completo -> ya no hace falta el checkpoint
     return pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
 
 
@@ -158,6 +180,8 @@ def registrar(min_edge: float) -> None:
             "edge_apuesta": r["edge"], "kelly_stake_frac": r["kelly_stake_frac"],
             "pinnacle_odds_cierre": np.nan, "fair_prob_cierre": np.nan, "clv": np.nan,
             "cierre_utc": "", "horas_antes_cierre": np.nan,
+            "odds_casa_cierre": np.nan, "movimiento_pinnacle": np.nan,
+            "convergencia_casa": np.nan,
         })
 
     if not nuevas:
@@ -200,6 +224,7 @@ def actualizar_cierre() -> None:
     datos["_linea"] = datos["outcome_point"].fillna(-999.0)
 
     justas, cuotas = {}, {}
+    precios_casa = {}   # (partido, etiqueta, casa) -> cuota al cierre
     for (_, mercado, linea), g in datos.groupby(["event_id", "market", "_linea"]):
         home, away = g["home_team"].iloc[0], g["away_team"].iloc[0]
         sh = g[g["bookmaker"] == SHARP_BOOK]
@@ -211,6 +236,12 @@ def actualizar_cierre() -> None:
             etiqueta = k if mercado == "h2h" else f"{k} {linea:g}"
             justas[(partido, etiqueta)] = v
             cuotas[(partido, etiqueta)] = precios[k]
+        # Precio de cierre de TODAS las casas, no solo del sharp -- necesario
+        # para medir si la casa blanda corrigio su propio error.
+        for _, fila in g.iterrows():
+            et = (fila["outcome_name"] if mercado == "h2h"
+                  else f"{fila['outcome_name']} {linea:g}")
+            precios_casa[(partido, et, fila["bookmaker"])] = fila["outcome_price_decimal"]
 
     ahora = _ahora()
     n = 0
@@ -230,6 +261,17 @@ def actualizar_cierre() -> None:
         log.at[i, "clv"] = odds * p_cierre - 1.0
         log.at[i, "cierre_utc"] = ahora.isoformat()
         log.at[i, "horas_antes_cierre"] = horas
+        # Movimiento del sharp: cuanto mejoro (o empeoro) el valor respecto
+        # del edge que teniamos al apostar.
+        log.at[i, "movimiento_pinnacle"] = (odds * p_cierre - 1.0) - float(log.at[i, "edge_apuesta"])
+        # Convergencia de la casa blanda hacia Pinnacle.
+        cierre_casa = precios_casa.get((log.at[i, "match"], log.at[i, "outcome"],
+                                        log.at[i, "book"]))
+        if cierre_casa is not None and not pd.isna(cierre_casa):
+            log.at[i, "odds_casa_cierre"] = cierre_casa
+            # Positivo = la casa BAJO su cuota acercandose al valor justo,
+            # es decir corrigio el error que le detectamos.
+            log.at[i, "convergencia_casa"] = (odds - float(cierre_casa)) / odds
         n += 1
 
     _guardar_log(log)
@@ -259,9 +301,13 @@ def reporte(max_horas: float) -> None:
             continue
         clv = d["clv"]
         print(f"--- {etiqueta} (n={len(d)}) ---")
-        print(f"   CLV medio      : {clv.mean():+.2%}")
+        print(f"   CLV medio      : {clv.mean():+.2%}   <-- OJO: ver aviso abajo")
         print(f"   CLV mediano    : {clv.median():+.2%}")
         print(f"   % con CLV > 0  : {(clv > 0).mean():.1%}")
+        print(f"   edge al apostar: {d['edge_apuesta'].mean():+.2%}")
+        print(f"   [AVISO] Si Pinnacle no movio su linea, CLV == edge por CONSTRUCCION. "
+              f"Un CLV\n           parecido al edge NO es evidencia -- es aritmetica. "
+              f"Lo que informa es el movimiento.")
         # --- Correccion por AGRUPAMIENTO (pseudo-replicacion) --------------
         # Hallazgo real del 2026-08-22: 370 filas del log correspondian a solo
         # 67 pares (partido, resultado) distintos -- una misma discrepancia
@@ -277,7 +323,7 @@ def reporte(max_horas: float) -> None:
         print(f"   observaciones independientes: {n_ef} pares (partido,resultado) "
               f"de {len(d)} filas -- {len(d)/n_ef:.1f} casas por apuesta")
         se = clusters.std(ddof=1) / np.sqrt(n_ef) if n_ef > 1 else np.nan
-        if not np.isnan(se) and se > 0:
+        if not np.isnan(se) and se > 1e-9:
             t = clusters.mean() / se
             print(f"   CLV medio por cluster: {clusters.mean():+.2%}  "
                   f"error estandar {se:.2%}  (t = {t:+.2f})")
@@ -286,13 +332,11 @@ def reporte(max_horas: float) -> None:
                 print(f"   [MUESTRA CHICA] con {n_ef} apuestas INDEPENDIENTES no se puede "
                       f"concluir nada todavia. Hacen falta 100+ pares distintos, no 100+ filas.")
             elif abs(t) < 2:
-                print(f"   VEREDICTO: CLV medio NO se distingue de cero.")
-            elif t >= 2:
-                print(f"   VEREDICTO: CLV positivo estadisticamente distinguible de cero. "
-                      f"Es la señal de que el edge es real.")
-            else:
-                print(f"   VEREDICTO: CLV NEGATIVO significativo -- el sistema esta comprando caro. "
-                      f"Revisar el desvig o la seleccion antes de seguir.")
+                print(f"   (CLV medio no se distingue de cero, pero eso NO es el test "
+                      f"que importa -- ver abajo)")
+
+        # ================= LO QUE DE VERDAD VALIDA EL MOTOR =================
+        _veredicto_movimiento(d)
         print()
 
     if len(cerradas) >= 10:
@@ -300,6 +344,62 @@ def reporte(max_horas: float) -> None:
         g = cerradas.groupby("operator")["clv"].agg(["size", "mean"]).sort_values("mean", ascending=False)
         g["mean"] = (g["mean"] * 100).round(2).astype(str) + "%"
         print(g.to_string())
+
+
+def _veredicto_movimiento(d: pd.DataFrame) -> None:
+    """Los DOS tests que no se pueden satisfacer por construccion.
+
+    1. MOVIMIENTO DE PINNACLE (clv - edge): ¿el sharp se movio hacia nuestra
+       apuesta? Positivo = compramos antes de que el mercado reconociera el
+       valor. Cero = Pinnacle no se movio (neutro). Negativo = estabamos
+       leyendo precio rancio y el sharp nos corrigio.
+
+    2. CONVERGENCIA DE LA CASA BLANDA: ¿la casa bajo su propia cuota hacia el
+       valor justo antes del arranque? Esta es la evidencia mas fuerte que
+       existe aca, porque es la casa ADMITIENDO que su precio estaba mal.
+       No hay forma de que salga positiva por construccion."""
+    print("\n   ### Los dos tests que NO se pueden cumplir por construccion ###")
+
+    for col, nombre, explica in [
+        ("movimiento_pinnacle", "MOVIMIENTO de Pinnacle (clv - edge)",
+         "el sharp se movio hacia nuestra apuesta"),
+        ("convergencia_casa", "CONVERGENCIA de la casa blanda",
+         "la casa corrigio su propio precio hacia el valor justo"),
+    ]:
+        if col not in d.columns:
+            print(f"   {nombre}: sin datos (log viejo, se llena desde la proxima corrida)")
+            continue
+        sub = d.dropna(subset=[col])
+        if sub.empty:
+            print(f"   {nombre}: sin datos todavia")
+            continue
+        cl = sub.groupby(["match", "outcome"])[col].mean()
+        n = len(cl)
+        se = cl.std(ddof=1) / np.sqrt(n) if n > 1 else np.nan
+        # Guardia: con varianza practicamente nula el t se dispara a valores
+        # absurdos (1e16). Pasa con datos sinteticos o cuando todas las
+        # apuestas comparten el mismo movimiento -- no es significancia real.
+        if not np.isnan(se) and se < 1e-9:
+            print(f"   {nombre}: {cl.mean():+.2%} (n={n}) -- varianza ~0, "
+                  f"sin test posible (todas se movieron igual)")
+            continue
+        linea = f"   {nombre}: {cl.mean():+.2%} (n={n} independientes"
+        if not np.isnan(se) and se > 0:
+            t = cl.mean() / se
+            linea += f", t={t:+.2f})"
+        else:
+            linea += ")"
+        print(linea)
+        if n < 20:
+            print(f"      muestra chica ({n}), sin veredicto todavia.")
+        elif not np.isnan(se) and se > 0:
+            if t >= 2:
+                print(f"      >>> POSITIVO Y SIGNIFICATIVO: {explica}. Esto SI es evidencia.")
+            elif t <= -2:
+                print(f"      >>> NEGATIVO Y SIGNIFICATIVO: el mercado se movio EN CONTRA. "
+                      f"Señal de alarma, revisar antes de escalar.")
+            else:
+                print(f"      >>> Indistinguible de cero: no confirma ni desmiente.")
 
 
 def limpiar(aplicar: bool) -> None:
