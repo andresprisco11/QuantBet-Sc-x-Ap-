@@ -37,6 +37,7 @@ Uso:
     python -m src.ingestion.theoddsapi_live_odds_loader --fetch-all
 """
 import os
+import random
 import sys
 import time
 from pathlib import Path
@@ -121,6 +122,25 @@ MARKETS_CON_TOTALES = "h2h,totals"
 MAX_RETRIES = 4
 BACKOFF_BASE_SECONDS = 3.0
 
+# --- Espaciado entre llamadas (agregado 2026-08-22) ----------------------
+# HUECO REAL detectado: este loader disparaba las 44 llamadas del barrido
+# una detras de otra sin ninguna pausa. El loader historico ya tenia 0.5s y
+# thestatsapi_xg_loader tiene delay ADAPTATIVO (bajado a 1.0s tras un 429
+# real), pero este nacio sin heredar nada.
+#
+# ACLARACION sobre el motivo, para no copiar una racionalizacion ajena:
+# NO es para evitar baneo de las casas de apuestas. Este proyecto NO las
+# raspa -- no hay selenium/playwright/BeautifulSoup en ningun lado, todo va
+# contra la API paga de The Odds API con key. Sus cortafuegos nunca nos ven.
+# Los motivos reales son dos:
+#   1. El rate limit de The Odds API (429), que existe y es explicito.
+#   2. No reventar una conexion domestica saturada con una rafaga de 44
+#      requests simultaneas -- espaciar no baja los bytes totales pero evita
+#      el pico.
+# Con jitter aleatorio para no generar un patron perfectamente periodico.
+REQUEST_DELAY_SECONDS = 0.8
+REQUEST_JITTER_SECONDS = 0.7
+
 
 def _api_key() -> str:
     key = os.environ.get("THEODDSAPI_KEY")
@@ -133,8 +153,15 @@ def _api_key() -> str:
     return key
 
 
-def _get_with_retries(url: str, params: dict) -> requests.Response:
+def _espaciar():
+    """Pausa con jitter entre llamadas. Ver REQUEST_DELAY_SECONDS."""
+    time.sleep(REQUEST_DELAY_SECONDS + random.uniform(0, REQUEST_JITTER_SECONDS))
+
+
+def _get_with_retries(url: str, params: dict, espaciar: bool = True) -> requests.Response:
     last_exc = None
+    if espaciar:
+        _espaciar()
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             resp = requests.get(url, params=params, timeout=30)

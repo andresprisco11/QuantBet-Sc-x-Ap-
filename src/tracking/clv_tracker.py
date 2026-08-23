@@ -195,10 +195,22 @@ def registrar(min_edge: float) -> None:
     print(f"-> {CLV_LOG}")
 
 
-def actualizar_cierre() -> None:
-    """Toma el snapshot actual de Pinnacle y lo usa como aproximacion de la
-    linea de cierre para las apuestas todavia pendientes. Correr LO MAS
-    CERCA POSIBLE del arranque de los partidos."""
+# Ventana por defecto para considerar un snapshot como "linea de cierre".
+# DEFECTO DE DISEÑO corregido el 2026-08-23: actualizar_cierre() cerraba
+# TODA apuesta que encontrara en el feed, sin importar cuanto faltaba para
+# el partido. Resultado real: 122 filas cerradas a una mediana de 141.7
+# HORAS antes del arranque (casi 6 dias). Eso no es una linea de cierre --
+# es un segundo snapshot tomado antes de que el mercado haga ningun
+# descubrimiento de precio, y mide ruido entre dos fotos casi identicas.
+# Ahora solo se cierran las apuestas cuyo partido esta por empezar.
+VENTANA_CIERRE_HORAS = 3.0
+
+
+def actualizar_cierre(ventana_horas: float = VENTANA_CIERRE_HORAS) -> None:
+    """Cierra SOLO las apuestas cuyo partido arranca dentro de
+    `ventana_horas`. Las demas quedan pendientes a proposito, para que cada
+    una se cierre cerca de SU propio kickoff -- que es lo que hace que el
+    numero signifique algo. Correr este comando varias veces al dia."""
     log = _cargar_log()
     if log.empty:
         print("Log vacio, nada que actualizar.")
@@ -208,7 +220,30 @@ def actualizar_cierre() -> None:
         print("No hay apuestas pendientes de cierre.")
         return
 
-    raw = _bajar_feed()
+    # OPTIMIZACION DE CREDITOS (2026-08-23): no hace falta barrer las 45
+    # competencias para cerrar apuestas. Solo se bajan las ligas que tienen
+    # apuestas pendientes con partido DENTRO de la ventana (mas un margen).
+    # Medido: un barrido completo cuesta 270 creditos; a 3 corridas diarias
+    # el presupuesto mensual se agota en 9 dias. Filtrando por ligas
+    # relevantes el costo cae a una fraccion.
+    inicio_pend = pd.to_datetime(log.loc[pend, "commence_time"], utc=True, errors="coerce")
+    horas_pend = (inicio_pend - _ahora()).dt.total_seconds() / 3600.0
+    # Margen de 1h por encima de la ventana: si un partido esta a 3.5h, la
+    # proxima corrida podria perderlo, asi que se incluye desde ya.
+    relevantes = log.loc[pend].loc[(horas_pend > -1) & (horas_pend <= ventana_horas + 1)]
+    ligas_necesarias = sorted(relevantes["league"].dropna().unique())
+
+    if not ligas_necesarias:
+        prox = horas_pend[horas_pend > 0].min()
+        print(f"Ninguna apuesta pendiente arranca dentro de {ventana_horas}h. "
+              f"No se gasta ni un credito.")
+        if not pd.isna(prox):
+            print(f"   El proximo partido pendiente arranca en {prox:.1f}h.")
+        return
+
+    print(f"Cerrando: {len(relevantes)} filas en {len(ligas_necesarias)} liga(s) "
+          f"(en vez de barrer las 45). Costo ~{len(ligas_necesarias)*6} creditos.")
+    raw = _bajar_feed(ligas=ligas_necesarias)
     if raw.empty:
         print("[AVISO] feed vacio, no se puede cerrar nada.")
         return
@@ -245,10 +280,20 @@ def actualizar_cierre() -> None:
 
     ahora = _ahora()
     n = 0
+    fuera_ventana = 0
     for i in log.index[pend]:
         clave = (log.at[i, "match"], log.at[i, "outcome"])
         if clave not in justas:
             continue  # el partido ya no esta en el feed (arranco) -- queda pendiente
+        # Solo cerrar si el partido esta por empezar. Ver VENTANA_CIERRE_HORAS.
+        try:
+            faltan = (pd.to_datetime(log.at[i, "commence_time"], utc=True)
+                      - ahora).total_seconds() / 3600.0
+        except Exception:
+            faltan = np.nan
+        if not np.isnan(faltan) and faltan > ventana_horas:
+            fuera_ventana += 1
+            continue
         p_cierre = justas[clave]
         odds = float(log.at[i, "odds_tomada"])
         try:
@@ -275,8 +320,11 @@ def actualizar_cierre() -> None:
         n += 1
 
     _guardar_log(log)
-    print(f"{n} apuestas actualizadas con linea de cierre. "
-          f"Pendientes: {int(log['clv'].isna().sum())}")
+    print(f"{n} apuestas cerradas (partido dentro de {ventana_horas}h). "
+          f"{fuera_ventana} todavia lejos del arranque, quedan pendientes a proposito. "
+          f"Pendientes totales: {int(log['clv'].isna().sum())}")
+    if fuera_ventana:
+        print(f"   -> volver a correr este comando mas cerca de esos partidos.")
 
 
 def reporte(max_horas: float) -> None:
@@ -344,6 +392,119 @@ def reporte(max_horas: float) -> None:
         g = cerradas.groupby("operator")["clv"].agg(["size", "mean"]).sort_values("mean", ascending=False)
         g["mean"] = (g["mean"] * 100).round(2).astype(str) + "%"
         print(g.to_string())
+
+
+def reabrir_tempranas(ventana_horas: float, aplicar: bool) -> None:
+    """Borra el cierre de las apuestas que se cerraron DEMASIADO LEJOS del
+    arranque, siempre que el partido todavia no se haya jugado.
+
+    Recupera muestra en vez de perderla: un cierre tomado 6 dias antes no
+    mide nada, pero si el partido aun no arranco se puede volver a cerrar
+    bien mas adelante."""
+    log = _cargar_log()
+    if log.empty or "horas_antes_cierre" not in log.columns:
+        print("Log vacio o sin datos de cierre.")
+        return
+    ahora = _ahora()
+    inicio = pd.to_datetime(log["commence_time"], utc=True, errors="coerce")
+    sin_jugar = inicio > ahora
+    mal_cerrada = log["clv"].notna() & (log["horas_antes_cierre"] > ventana_horas)
+    objetivo = sin_jugar & mal_cerrada
+
+    print(f"Cerradas a mas de {ventana_horas}h del arranque Y todavia sin jugar: "
+          f"{int(objetivo.sum())}")
+    if objetivo.any():
+        print(f"   se cerraron a una mediana de "
+              f"{log.loc[objetivo,'horas_antes_cierre'].median():.0f}h del partido")
+    ya_jugadas_mal = (~sin_jugar) & mal_cerrada
+    if ya_jugadas_mal.any():
+        print(f"[PERDIDAS] {int(ya_jugadas_mal.sum())} se cerraron mal y el partido YA se jugo "
+              f"-- no se pueden recuperar.")
+    if not aplicar:
+        print("\n[SIMULACION] No se modifico nada. Usar --reabrir-aplicar para hacerlo.")
+        return
+    for col in ["pinnacle_odds_cierre", "fair_prob_cierre", "clv", "horas_antes_cierre",
+                "odds_casa_cierre", "movimiento_pinnacle", "convergencia_casa"]:
+        if col in log.columns:
+            log.loc[objetivo, col] = np.nan
+    log.loc[objetivo, "cierre_utc"] = ""
+    _guardar_log(log)
+    print(f"\n{int(objetivo.sum())} apuestas reabiertas. Volver a correr --update-closing "
+          f"cerca del arranque de cada partido.")
+
+
+def agenda(ventana_horas: float, tz_offset: float) -> None:
+    """Responde la pregunta operativa que se repite TODOS los dias: ¿que
+    partidos tengo pendientes y a que hora conviene correr el cierre?
+
+    Existe porque resolverlo a mano requiere mirar el log y cruzar horarios,
+    y una apuesta cuyo partido arranca sin haberse cerrado se pierde para
+    siempre. El script propone horarios que maximizan cuantas apuestas
+    entran en la ventana de cierre."""
+    log = _cargar_log()
+    if log.empty:
+        print("Log vacio.")
+        return
+    ahora = _ahora()
+    inicio = pd.to_datetime(log["commence_time"], utc=True, errors="coerce")
+    pend = log["clv"].isna() & (inicio > ahora)
+    d = log[pend].copy()
+    if d.empty:
+        print("No hay apuestas pendientes con partido por jugarse.")
+        perdidas = int((log["clv"].isna() & (inicio <= ahora)).sum())
+        if perdidas:
+            print(f"[AVISO] {perdidas} quedaron sin cerrar y su partido ya arranco -- perdidas.")
+        return
+
+    d["inicio"] = inicio[pend]
+    d["horas"] = (d["inicio"] - ahora).dt.total_seconds() / 3600.0
+    d["local"] = (d["inicio"] + pd.Timedelta(hours=tz_offset)).dt.strftime("%a %d %I:%M %p")
+
+    print(f"PENDIENTES: {len(d)} filas, {d.groupby(['match','outcome']).ngroups} apuestas "
+          f"independientes\n")
+    print(f"{'arranque (tu hora)':<22}{'liga':<38}{'filas':>6}{'en':>8}")
+    print("-" * 76)
+    for (loc, liga), g in d.groupby(["local", "league"], sort=False):
+        h = g["horas"].iloc[0]
+        print(f"{loc:<22}{str(liga)[:37]:<38}{len(g):>6}{h:>7.1f}h")
+
+    # Horarios sugeridos: se recorre el dia en pasos de 30 min y se elige
+    # greedy el momento que cierra mas apuestas todavia sin cubrir.
+    hoy = d[d["horas"] <= 24].copy()
+    print(f"\n{'='*76}")
+    if hoy.empty:
+        prox = d["horas"].min()
+        print(f"Nada arranca en las proximas 24h. El proximo partido es en {prox:.0f}h "
+              f"({d.loc[d['horas'].idxmin(),'local']}).")
+        print("No hace falta correr --update-closing todavia: no gastaria creditos igual.")
+        return
+
+    print("HORARIOS SUGERIDOS para correr --update-closing (proximas 24h):\n")
+    sin_cubrir = set(hoy.index)
+    momentos = []
+    for _ in range(6):
+        if not sin_cubrir:
+            break
+        mejor, mejor_n = None, 0
+        t = 0.0
+        while t <= 24:
+            cubre = {i for i in sin_cubrir if 0 < hoy.at[i, "horas"] - t <= ventana_horas}
+            if len(cubre) > mejor_n:
+                mejor, mejor_n = (t, cubre), len(cubre)
+            t += 0.5
+        if not mejor or mejor_n == 0:
+            break
+        t, cubre = mejor
+        hora_local = (ahora + pd.Timedelta(hours=t + tz_offset)).strftime("%a %d %I:%M %p")
+        ligas = hoy.loc[list(cubre), "league"].nunique()
+        momentos.append((hora_local, len(cubre), ligas))
+        sin_cubrir -= cubre
+
+    for hora_local, n, ligas in momentos:
+        print(f"   {hora_local:<24} cierra {n:>3} filas  (~{ligas*6} creditos)")
+    if sin_cubrir:
+        print(f"\n   [OJO] {len(sin_cubrir)} filas no entran en ningun horario razonable "
+              f"-- arrancan muy pronto o muy dispersas.")
 
 
 def _veredicto_movimiento(d: pd.DataFrame) -> None:
@@ -446,16 +607,30 @@ def main():
                     help="Ver cuantas filas del log son de partidos ya empezados (no borra).")
     ap.add_argument("--limpiar-aplicar", action="store_true",
                     help="Borrarlas de verdad.")
+    ap.add_argument("--ventana", type=float, default=VENTANA_CIERRE_HORAS,
+                    help="Horas antes del arranque dentro de las cuales se considera cierre.")
+    ap.add_argument("--reabrir", action="store_true",
+                    help="Ver cuantas se cerraron demasiado lejos del arranque (no modifica).")
+    ap.add_argument("--agenda", action="store_true",
+                    help="Que partidos hay pendientes y a que hora conviene cerrar. GRATIS.")
+    ap.add_argument("--tz", type=float, default=-4.0,
+                    help="Tu huso horario respecto de UTC (default -4).")
+    ap.add_argument("--reabrir-aplicar", action="store_true",
+                    help="Reabrirlas para volver a cerrarlas bien mas adelante.")
     ap.add_argument("--min-edge", type=float, default=0.03)
     ap.add_argument("--max-horas", type=float, default=6.0)
     args = ap.parse_args()
 
-    if args.limpiar or args.limpiar_aplicar:
+    if args.agenda:
+        agenda(args.ventana, args.tz)
+    elif args.limpiar or args.limpiar_aplicar:
         limpiar(aplicar=args.limpiar_aplicar)
     elif args.record:
         registrar(args.min_edge)
+    elif args.reabrir or args.reabrir_aplicar:
+        reabrir_tempranas(args.ventana, aplicar=args.reabrir_aplicar)
     elif args.update_closing:
-        actualizar_cierre()
+        actualizar_cierre(args.ventana)
     elif args.report:
         reporte(args.max_horas)
     else:
