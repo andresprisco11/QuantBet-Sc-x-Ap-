@@ -61,6 +61,43 @@ SPORT_KEYS = {
     "BUNDESLIGA": "soccer_germany_bundesliga",
 }
 
+# --- Ligas de EXPANSION para la via de arbitraje sharp-vs-blandas ---------
+# Motivo (2026-08-22): la deteccion de valor contra casas blandas NO usa
+# nuestro modelo, solo necesita que Pinnacle cotice el partido. Por lo tanto
+# NO esta limitada a las 4 ligas con historico limpio -- puede correr sobre
+# cualquier competencia que la API sirva.
+#
+# Esto ataca el cuello de botella real: el CLV necesita 100+ apuestas para
+# ser informativo, y con 4 ligas se juntan ~16 por fin de semana (6 semanas).
+# Ampliando la superficie, el veredicto llega en semanas en vez de meses.
+#
+# Ademas hay una razon de fondo, no solo de volumen: las casas blandas son
+# MAS flojas cuanto menos liquida la competencia. El edge deberia ser mayor
+# aca que en la Premier, no menor.
+#
+# SIN CONFIRMAR: estos sport_key son los documentados por el vendor pero
+# este proyecto no los probo. Correr --list-soccer (llamada GRATIS) para ver
+# cuales existen y estan activos de verdad antes de usarlos.
+EXPANSION_KEYS = {
+    "LIGUE1": "soccer_france_ligue_one",
+    "EREDIVISIE": "soccer_netherlands_eredivisie",
+    "PRIMEIRA": "soccer_portugal_primeira_liga",
+    "CHAMPIONSHIP": "soccer_efl_champ",
+    "BELGIUM": "soccer_belgium_first_div",
+    "TURKEY": "soccer_turkey_super_league",
+    "GREECE": "soccer_greece_super_league",
+    "BRAZIL": "soccer_brazil_campeonato",
+    "ARGENTINA": "soccer_argentina_primera_division",
+    "MLS": "soccer_usa_mls",
+    "LALIGA2": "soccer_spain_segunda_division",
+    "BUNDESLIGA2": "soccer_germany_bundesliga2",
+    "SERIEB": "soccer_italy_serie_b",
+    "UCL": "soccer_uefa_champs_league",
+    "MEXICO": "soccer_mexico_ligamx",
+}
+
+ALL_KEYS = {**SPORT_KEYS, **EXPANSION_KEYS}
+
 # Pinnacle suele reportarse bajo la region 'eu' en The Odds API. Se piden
 # varias regiones a la vez en el probe (barato, sigue siendo 1 llamada) para
 # no tener que adivinar cual trae Pinnacle para soccer -- se ve en la
@@ -73,7 +110,13 @@ PROBE_REGIONS = "eu,uk,us"
 # Costo extra trivial (3 creditos x liga en vez de 1, con ~8800 restantes
 # de 20,000/mes) frente al riesgo de silenciosamente dejar de traer Pinnacle.
 FETCH_REGIONS = "eu,uk,us"
-MARKETS = "h2h"  # 1X2 -- lo unico que necesita matchday_experiment.py / economic_backtest.py hoy
+# h2h = 1X2. 'totals' (mas/menos goles) se agrega como mercado opcional:
+# multiplica la superficie de deteccion por partido sin costar una llamada
+# extra por liga -- The Odds API cobra por region x mercado, asi que pedir
+# h2h+totals juntos cuesta 2x, no 2 llamadas. Vale la pena: el cuello de
+# botella del proyecto hoy es juntar muestra para el CLV.
+MARKETS = "h2h"
+MARKETS_CON_TOTALES = "h2h,totals"
 
 MAX_RETRIES = 4
 BACKOFF_BASE_SECONDS = 3.0
@@ -110,6 +153,68 @@ def _get_with_retries(url: str, params: dict) -> requests.Response:
     raise RuntimeError(f"Se agotaron los reintentos contra {url}") from last_exc
 
 
+def discover_active_soccer(excluir_femenino: bool = False) -> dict:
+    """Devuelve {NOMBRE: sport_key} de TODAS las competencias de futbol
+    ACTIVAS ahora mismo, preguntandoselo a la API en vez de mantener una
+    lista a mano.
+
+    Por que asi y no con EXPANSION_KEYS fija (decidido 2026-08-22): una
+    lista hardcodeada envejece sola -- las competencias entran y salen de
+    temporada, y una key que deja de estar activa se convierte en una
+    llamada desperdiciada o en un error silencioso. Ademas evita el riesgo
+    contrario: inventar un sport_key que no existe.
+
+    La llamada a /v4/sports es GRATIS (no consume creditos), asi que
+    descubrir en cada corrida no cuesta nada.
+
+    CONFIRMADO 2026-08-22 con llamada real: la API sirve 67 competencias de
+    futbol, 45 activas. NO incluye la Primera A de Colombia -- no hay ningun
+    sport_key colombiano en la respuesta real (entre 'soccer_chile_
+    campeonato' y 'soccer_conmebol_*' no hay nada). No se puede cubrir lo
+    que la fuente no sirve."""
+    resp = _get_with_retries(f"{BASE_URL}/sports", {"apiKey": _api_key()})
+    activos = {}
+    for s in resp.json():
+        key = str(s.get("key", ""))
+        if not key.startswith("soccer_") or not s.get("active"):
+            continue
+        if excluir_femenino and ("women" in key or "womens" in key):
+            continue
+        nombre = key.replace("soccer_", "").upper()
+        activos[nombre] = key
+    return activos
+
+
+def list_soccer() -> None:
+    """Llamada GRATIS (/v4/sports no consume creditos) que lista TODAS las
+    competencias de futbol que la API sirve realmente, marcando cuales estan
+    activas. Es el paso obligatorio antes de confiar en EXPANSION_KEYS --
+    misma disciplina de siempre: no asumir un identificador, confirmarlo."""
+    resp = _get_with_retries(f"{BASE_URL}/sports", {"apiKey": _api_key(), "all": "true"})
+    data = resp.json()
+    soccer = [s for s in data if str(s.get("key", "")).startswith("soccer_")]
+    activos = [s for s in soccer if s.get("active")]
+
+    print(f"Competencias de futbol que sirve la API: {len(soccer)} "
+          f"({len(activos)} activas ahora mismo)\n")
+    print(f"{'sport_key':<42}{'activa':<9}titulo")
+    print("-" * 92)
+    for s in sorted(soccer, key=lambda x: (not x.get("active"), x["key"])):
+        print(f"{s['key']:<42}{'SI' if s.get('active') else 'no':<9}{s.get('title','')}")
+
+    reales = {s["key"] for s in soccer}
+    activas = {s["key"] for s in activos}
+    print(f"\n--- Chequeo de las que este proyecto tiene configuradas ---")
+    for nombre, key in ALL_KEYS.items():
+        if key in activas:
+            estado = "OK, activa"
+        elif key in reales:
+            estado = "existe pero INACTIVA (fuera de temporada)"
+        else:
+            estado = "*** NO EXISTE -- corregir el sport_key ***"
+        print(f"  {nombre:<15} {key:<42} {estado}")
+
+
 def check_credits() -> None:
     """Llamada gratis (no consume creditos) -- mismo patron que
     theoddsapi_historical_loader.py, para chequear presupuesto sin gastar."""
@@ -125,9 +230,9 @@ def probe(league_key: str) -> None:
     hay partidos programados, y sobre todo -- la pregunta abierta de este
     archivo -- que bookmakers reales trae la API para soccer, y si Pinnacle
     esta entre ellos. Imprime todo tal cual viene, sin interpretar."""
-    sport_key = SPORT_KEYS.get(league_key)
+    sport_key = ALL_KEYS.get(league_key)
     if sport_key is None:
-        print(f"[ERROR] '{league_key}' no esta en SPORT_KEYS: {list(SPORT_KEYS)}")
+        print(f"[ERROR] '{league_key}' no esta en ALL_KEYS: {list(ALL_KEYS)}")
         return
 
     print(f"=== Probe The Odds API -- {league_key} (sport_key='{sport_key}') ===")
@@ -189,7 +294,8 @@ def probe_all() -> None:
         print("\n" + "=" * 70 + "\n")
 
 
-def fetch_upcoming_odds(league_key: str, regions: str = FETCH_REGIONS) -> pd.DataFrame:
+def fetch_upcoming_odds(league_key: str, regions: str = FETCH_REGIONS,
+                        markets: str = MARKETS) -> pd.DataFrame:
     """Trae las cuotas ACTUALES de todos los partidos programados de esta
     liga (proximos dias, lo que la API tenga cargado) y las normaliza a un
     DataFrame long-format: una fila por (partido, bookmaker, resultado).
@@ -197,16 +303,19 @@ def fetch_upcoming_odds(league_key: str, regions: str = FETCH_REGIONS) -> pd.Dat
     NO reemplaza a matchday_experiment.py todavia -- ese cableado (leer este
     DataFrame en vez de la lista MATCHES hardcodeada) es el siguiente paso,
     una vez confirmado con --probe que esto trae datos reales y utiles."""
-    sport_key = SPORT_KEYS.get(league_key)
+    # Acepta un nombre configurado O un sport_key directo -- necesario para
+    # que funcione con discover_active_soccer(), que devuelve competencias
+    # que no estan en ALL_KEYS.
+    sport_key = ALL_KEYS.get(league_key, league_key if league_key.startswith("soccer_") else None)
     if sport_key is None:
-        raise ValueError(f"'{league_key}' no esta en SPORT_KEYS: {list(SPORT_KEYS)}")
+        raise ValueError(f"'{league_key}' no esta en ALL_KEYS ni parece un sport_key: {list(ALL_KEYS)}")
 
     resp = _get_with_retries(
         f"{BASE_URL}/sports/{sport_key}/odds",
         {
             "apiKey": _api_key(),
             "regions": regions,
-            "markets": MARKETS,
+            "markets": markets,
             "oddsFormat": "decimal",
         },
     )
@@ -230,6 +339,11 @@ def fetch_upcoming_odds(league_key: str, regions: str = FETCH_REGIONS) -> pd.Dat
                         "market": market.get("key"),
                         "outcome_name": outcome.get("name"),
                         "outcome_price_decimal": outcome.get("price"),
+                        # 'point' es la LINEA del mercado de totales (2.5, 3.0...).
+                        # Es None para h2h. Sin esta columna no se pueden comparar
+                        # totales entre casas: un Over 2.5 y un Over 3.0 son
+                        # apuestas DISTINTAS y compararlas daria un edge falso.
+                        "outcome_point": outcome.get("point"),
                     })
 
     df = pd.DataFrame(rows)
@@ -269,14 +383,18 @@ def fetch_all_and_save() -> None:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--probe", choices=list(SPORT_KEYS), default=None)
+    parser.add_argument("--probe", choices=list(ALL_KEYS), default=None)
     parser.add_argument("--probe-all", action="store_true")
     parser.add_argument("--check-credits", action="store_true")
-    parser.add_argument("--fetch", choices=list(SPORT_KEYS), default=None)
+    parser.add_argument("--fetch", choices=list(ALL_KEYS), default=None)
+    parser.add_argument("--list-soccer", action="store_true",
+                        help="Listar TODAS las competencias de futbol reales de la API (GRATIS).")
     parser.add_argument("--fetch-all", action="store_true")
     args = parser.parse_args()
 
-    if args.probe:
+    if args.list_soccer:
+        list_soccer()
+    elif args.probe:
         probe(args.probe)
     elif args.probe_all:
         probe_all()

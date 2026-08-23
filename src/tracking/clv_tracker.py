@@ -58,8 +58,8 @@ import numpy as np
 import pandas as pd
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
-from config.settings import LEAGUES
-from src.ingestion.theoddsapi_live_odds_loader import fetch_upcoming_odds
+from src.ingestion.theoddsapi_live_odds_loader import (
+    fetch_upcoming_odds, ALL_KEYS, MARKETS_CON_TOTALES, discover_active_soccer)
 from src.evaluation.soft_book_edge import find_edges, devig_shin, SHARP_BOOK
 from src.tracking.run_logger import RUNS_DIR
 
@@ -100,15 +100,30 @@ def _guardar_log(df: pd.DataFrame) -> None:
     df.to_csv(CLV_LOG, index=False)
 
 
-def _bajar_feed() -> pd.DataFrame:
+def _bajar_feed(ligas=None, markets: str = MARKETS_CON_TOTALES) -> pd.DataFrame:
+    """Baja el feed de TODAS las competencias configuradas (no solo las 4 con
+    historico) y con h2h+totales. Esto ataca el cuello de botella real: el
+    CLV necesita 100+ apuestas para decir algo, y con 4 ligas y solo 1X2 se
+    juntaban ~16 por fin de semana."""
     dfs = []
-    for liga in LEAGUES:
+    ligas = ligas or discover_active_soccer(excluir_femenino=True)
+    # BUG REAL corregido (2026-08-22): discover_active_soccer() devuelve un
+    # dict {NOMBRE: sport_key}, y iterar un dict en Python da las CLAVES
+    # ('ARGENTINA_PRIMERA_DIVISION'), no los sport_key. Eso hacia fallar 43
+    # de 44 competencias -- solo pasaba EPL, y de casualidad, porque 'EPL'
+    # existe en ALL_KEYS. Hay que iterar los VALORES.
+    claves = list(ligas.values()) if isinstance(ligas, dict) else list(ligas)
+    print(f"Competencias activas descubiertas: {len(claves)}")
+    ok = 0
+    for liga in claves:
         try:
-            d = fetch_upcoming_odds(liga)
+            d = fetch_upcoming_odds(liga, markets=markets)
             if not d.empty:
                 dfs.append(d)
+                ok += 1
         except Exception as e:
             print(f"[ERROR] {liga}: {e}")
+    print(f"Competencias con partidos y cuotas: {ok}/{len(claves)}")
     return pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
 
 
@@ -174,18 +189,28 @@ def actualizar_cierre() -> None:
         print("[AVISO] feed vacio, no se puede cerrar nada.")
         return
 
-    # Probabilidad justa actual de Pinnacle por (partido, resultado)
-    h2h = raw[raw["market"] == "h2h"]
+    # Probabilidad justa actual de Pinnacle por (partido, resultado).
+    # DEBE cubrir h2h Y totals, y la etiqueta del resultado tiene que
+    # construirse EXACTAMENTE igual que en find_edges() ("Over 2.5", no
+    # "Over"), o las apuestas de totales nunca encontrarian su cierre y
+    # quedarian pendientes para siempre.
+    if "outcome_point" not in raw.columns:
+        raw = raw.assign(outcome_point=np.nan)
+    datos = raw[raw["market"].isin(["h2h", "totals"])].copy()
+    datos["_linea"] = datos["outcome_point"].fillna(-999.0)
+
     justas, cuotas = {}, {}
-    for _, g in h2h.groupby("event_id"):
+    for (_, mercado, linea), g in datos.groupby(["event_id", "market", "_linea"]):
         home, away = g["home_team"].iloc[0], g["away_team"].iloc[0]
         sh = g[g["bookmaker"] == SHARP_BOOK]
         precios = dict(zip(sh["outcome_name"], sh["outcome_price_decimal"]))
-        if len(precios) != 3:
+        if len(precios) != (3 if mercado == "h2h" else 2):
             continue
+        partido = f"{home} vs {away}"
         for k, v in devig_shin(precios).items():
-            justas[(f"{home} vs {away}", k)] = v
-            cuotas[(f"{home} vs {away}", k)] = precios[k]
+            etiqueta = k if mercado == "h2h" else f"{k} {linea:g}"
+            justas[(partido, etiqueta)] = v
+            cuotas[(partido, etiqueta)] = precios[k]
 
     ahora = _ahora()
     n = 0
@@ -237,14 +262,29 @@ def reporte(max_horas: float) -> None:
         print(f"   CLV medio      : {clv.mean():+.2%}")
         print(f"   CLV mediano    : {clv.median():+.2%}")
         print(f"   % con CLV > 0  : {(clv > 0).mean():.1%}")
-        # Error estandar -> permite decir si el CLV medio se distingue de cero
-        se = clv.std(ddof=1) / np.sqrt(len(clv)) if len(clv) > 1 else np.nan
+        # --- Correccion por AGRUPAMIENTO (pseudo-replicacion) --------------
+        # Hallazgo real del 2026-08-22: 370 filas del log correspondian a solo
+        # 67 pares (partido, resultado) distintos -- una misma discrepancia
+        # aparecia hasta en 26 casas a la vez. Esas 26 filas NO son 26
+        # observaciones independientes: comparten el MISMO cierre de Pinnacle,
+        # asi que su CLV esta casi perfectamente correlacionado.
+        # Tratarlas como independientes infla el t hasta 5x y haria "confirmar"
+        # un edge que la muestra no soporta. Se promedia por cluster y el test
+        # se hace sobre las medias de cluster -- el estandar para datos
+        # agrupados.
+        clusters = d.groupby(["match", "outcome"])["clv"].mean()
+        n_ef = len(clusters)
+        print(f"   observaciones independientes: {n_ef} pares (partido,resultado) "
+              f"de {len(d)} filas -- {len(d)/n_ef:.1f} casas por apuesta")
+        se = clusters.std(ddof=1) / np.sqrt(n_ef) if n_ef > 1 else np.nan
         if not np.isnan(se) and se > 0:
-            t = clv.mean() / se
-            print(f"   error estandar : {se:.2%}  (t = {t:+.2f})")
-            if len(clv) < 30:
-                print(f"   [MUESTRA CHICA] con n={len(clv)} no se puede concluir nada todavia. "
-                      f"El CLV necesita del orden de 100+ apuestas para ser informativo.")
+            t = clusters.mean() / se
+            print(f"   CLV medio por cluster: {clusters.mean():+.2%}  "
+                  f"error estandar {se:.2%}  (t = {t:+.2f})")
+            clv = clusters  # los veredictos se leen sobre la muestra efectiva
+            if n_ef < 30:
+                print(f"   [MUESTRA CHICA] con {n_ef} apuestas INDEPENDIENTES no se puede "
+                      f"concluir nada todavia. Hacen falta 100+ pares distintos, no 100+ filas.")
             elif abs(t) < 2:
                 print(f"   VEREDICTO: CLV medio NO se distingue de cero.")
             elif t >= 2:
@@ -262,16 +302,57 @@ def reporte(max_horas: float) -> None:
         print(g.to_string())
 
 
+def limpiar(aplicar: bool) -> None:
+    """Saca del log las apuestas que se registraron sobre partidos que YA
+    habian empezado. Ver MIN_MINUTOS_ANTES en soft_book_edge: son lineas en
+    vivo desactualizadas, no valor pre-partido, y arruinarian el CLV.
+
+    Necesario porque el log acumulado antes del 2026-08-22 se lleno de
+    ellas: 268 de 370 filas (72%), con edge medio 108% y maximo 1101%."""
+    log = _cargar_log()
+    if log.empty:
+        print("Log vacio.")
+        return
+    inicio = pd.to_datetime(log["commence_time"], utc=True, errors="coerce")
+    registro = pd.to_datetime(log["registrada_utc"], utc=True, errors="coerce")
+    # Se compara contra el momento del REGISTRO, no contra ahora: la pregunta
+    # es si el partido ya habia empezado cuando se detecto la oportunidad.
+    mala = inicio.isna() | registro.isna() | (inicio <= registro)
+    print(f"Filas totales: {len(log)}")
+    print(f"Registradas sobre partido YA EMPEZADO: {int(mala.sum())} ({mala.mean():.0%})")
+    if mala.any():
+        print(f"   edge medio de esas    : {log.loc[mala,'edge_apuesta'].mean():.1%}")
+        print(f"   edge maximo           : {log.loc[mala,'edge_apuesta'].max():.0%}")
+    print(f"Filas que quedan (validas): {int((~mala).sum())}")
+    if (~mala).any():
+        print(f"   edge medio de esas    : {log.loc[~mala,'edge_apuesta'].mean():.2%}")
+        pares = log[~mala].groupby(["match","outcome"]).ngroups
+        print(f"   apuestas independientes: {pares} pares (partido,resultado)")
+
+    if not aplicar:
+        print("\n[SIMULACION] No se modifico nada. Correr con "
+              "--limpiar-aplicar para borrarlas de verdad.")
+        return
+    _guardar_log(log[~mala].reset_index(drop=True))
+    print(f"\nLog limpiado -> {CLV_LOG}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--record", action="store_true")
     ap.add_argument("--update-closing", action="store_true")
     ap.add_argument("--report", action="store_true")
+    ap.add_argument("--limpiar", action="store_true",
+                    help="Ver cuantas filas del log son de partidos ya empezados (no borra).")
+    ap.add_argument("--limpiar-aplicar", action="store_true",
+                    help="Borrarlas de verdad.")
     ap.add_argument("--min-edge", type=float, default=0.03)
     ap.add_argument("--max-horas", type=float, default=6.0)
     args = ap.parse_args()
 
-    if args.record:
+    if args.limpiar or args.limpiar_aplicar:
+        limpiar(aplicar=args.limpiar_aplicar)
+    elif args.record:
         registrar(args.min_edge)
     elif args.update_closing:
         actualizar_cierre()

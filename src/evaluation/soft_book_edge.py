@@ -102,8 +102,9 @@ import pandas as pd
 from scipy.optimize import brentq
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
-from config.settings import LEAGUES, RAW_DATA_DIR
-from src.ingestion.theoddsapi_live_odds_loader import fetch_upcoming_odds
+from config.settings import RAW_DATA_DIR
+from src.ingestion.theoddsapi_live_odds_loader import (
+    fetch_upcoming_odds, ALL_KEYS, MARKETS_CON_TOTALES, discover_active_soccer)
 
 SHARP_BOOK = "pinnacle"
 
@@ -117,6 +118,24 @@ SHARP_BOOK = "pinnacle"
 DEFAULT_MIN_EDGE = 0.03
 KELLY_FRACTION = 0.10
 MAX_STAKE_FRACTION = 0.05
+
+# --- Dos filtros de cordura, ambos por hallazgos REALES del 2026-08-22 ----
+#
+# MIN_MINUTOS_ANTES: solo partidos que TODAVIA no arrancaron. En la primera
+# corrida a 44 competencias, **268 de 370 oportunidades (72%) eran de
+# partidos ya empezados**, con edge medio 108% y maximo 1101% (una casa
+# pagaba 501.0 lo que Pinnacle tenia a 28.10, con el partido 1.6 horas en
+# juego). Son lineas en vivo desactualizadas: la referencia pre-partido de
+# Pinnacle ya no es valida, y de todos modos ese precio no se puede tomar.
+# Envenenarian por completo la medicion de CLV.
+# Las 102 restantes (no empezadas) daban edge medio 5.96% -- el rango creible.
+MIN_MINUTOS_ANTES = 5
+
+# MAX_EDGE_SANITY: un edge pre-partido de mas de 25% contra el libro mas
+# sharp del mundo casi nunca es una oportunidad -- es linea suspendida,
+# congelada, o un error de la fuente. Se descarta y se AVISA cuantas cayeron,
+# en vez de dejarlas pasar como si fueran valor.
+MAX_EDGE_SANITY = 0.25
 
 # Casas que NO son objetivo de esta estrategia: exchanges (cobran comision
 # sobre ganancias, el precio bruto no es comparable) y el propio Pinnacle
@@ -191,26 +210,55 @@ DEVIG_METHODS = {
 }
 
 
+def _filtrar_ya_empezados(raw: pd.DataFrame) -> pd.DataFrame:
+    """Descarta partidos cuyo arranque ya paso (o esta a menos de
+    MIN_MINUTOS_ANTES). Ver MIN_MINUTOS_ANTES para el hallazgo que lo
+    motiva -- sin esto, el 72% de lo detectado es basura de linea en vivo."""
+    if "commence_time" not in raw.columns:
+        return raw
+    inicio = pd.to_datetime(raw["commence_time"], utc=True, errors="coerce")
+    corte = pd.Timestamp.now(tz="UTC") + pd.Timedelta(minutes=MIN_MINUTOS_ANTES)
+    vale = inicio.notna() & (inicio > corte)
+    n_fuera = int((~vale).sum())
+    if n_fuera:
+        print(f"  [FILTRO] {n_fuera} filas descartadas por partido ya empezado "
+              f"o a menos de {MIN_MINUTOS_ANTES} min del arranque (linea en vivo, "
+              f"no es valor pre-partido).")
+    return raw[vale]
+
+
 def find_edges(raw: pd.DataFrame, min_edge: float, metodo: str = "shin",
                dedupe_operator: bool = True) -> pd.DataFrame:
     """Para cada partido: desvig-ea Pinnacle y busca en el resto de las
-    casas precios que superen esa probabilidad justa."""
-    h2h = raw[raw["market"] == "h2h"].copy()
+    casas precios que superen esa probabilidad justa.
+
+    Soporta h2h (3 vias) y totals (2 vias). CLAVE en totales: se agrupa por
+    (partido, LINEA), porque un Over 2.5 y un Over 3.0 son apuestas
+    DISTINTAS -- compararlas entre si daria un edge inventado. Solo se
+    compara contra la MISMA linea que cotiza Pinnacle."""
     if metodo not in DEVIG_METHODS:
         raise ValueError(f"metodo de desvig desconocido: {metodo} (opciones: {list(DEVIG_METHODS)})")
+    if "outcome_point" not in raw.columns:
+        raw = raw.assign(outcome_point=np.nan)
+    raw = _filtrar_ya_empezados(raw)
+    datos = raw[raw["market"].isin(["h2h", "totals"])].copy()
+    # La linea entra en la clave de agrupacion. Para h2h queda constante.
+    datos["_linea"] = datos["outcome_point"].fillna(-999.0)
     filas = []
+    descartadas_absurdas = []
 
-    for event_id, grp in h2h.groupby("event_id"):
+    for (event_id, mercado, linea), grp in datos.groupby(["event_id", "market", "_linea"]):
         home = grp["home_team"].iloc[0]
         away = grp["away_team"].iloc[0]
         liga = grp["league"].iloc[0]
         inicio = grp["commence_time"].iloc[0]
+        n_vias = 3 if mercado == "h2h" else 2
 
         sharp = grp[grp["bookmaker"] == SHARP_BOOK]
         precios_sharp = dict(zip(sharp["outcome_name"], sharp["outcome_price_decimal"]))
-        # Sin las 3 cuotas del libro sharp no hay referencia -- se salta el
-        # partido en vez de estimar la faltante.
-        if len(precios_sharp) != 3:
+        # Sin TODAS las vias del libro sharp no hay referencia -- se salta,
+        # no se estima la faltante.
+        if len(precios_sharp) != n_vias:
             continue
         justas = DEVIG_METHODS[metodo](precios_sharp)
         justas_prop = devig_proportional(precios_sharp)  # solo para reportar la diferencia
@@ -227,11 +275,19 @@ def find_edges(raw: pd.DataFrame, min_edge: float, metodo: str = "shin",
             edge = p_justa * cuota - 1.0
             if edge < min_edge:
                 continue
+            if edge > MAX_EDGE_SANITY:
+                descartadas_absurdas.append((f"{home} vs {away}", resultado, book, cuota, edge))
+                continue
             kelly_full = (p_justa * cuota - 1.0) / (cuota - 1.0)
             stake = min(max(kelly_full * KELLY_FRACTION, 0.0), MAX_STAKE_FRACTION)
+            # La linea forma parte de la IDENTIDAD de la apuesta en totales:
+            # "Over" a secas seria ambiguo entre 2.5 y 3.0.
+            etiqueta = resultado if mercado == "h2h" else f"{resultado} {linea:g}"
             filas.append({
                 "league": liga, "commence_time": inicio,
-                "match": f"{home} vs {away}", "outcome": resultado,
+                "match": f"{home} vs {away}", "market": mercado,
+                "line": (np.nan if mercado == "h2h" else linea),
+                "outcome": etiqueta,
                 "book": book, "operator": OPERATOR_GROUP.get(book, book),
                 "book_odds": cuota,
                 "pinnacle_odds": precios_sharp[resultado],
@@ -240,9 +296,16 @@ def find_edges(raw: pd.DataFrame, min_edge: float, metodo: str = "shin",
                 "kelly_stake_frac": stake,
             })
 
-    columnas = ["league", "commence_time", "match", "outcome", "book", "operator",
-                "book_odds", "pinnacle_odds", "fair_prob", "edge", "edge_proporcional",
-                "kelly_stake_frac"]
+    if descartadas_absurdas:
+        print(f"  [CORDURA] {len(descartadas_absurdas)} descartadas por edge > "
+              f"{MAX_EDGE_SANITY:.0%} contra Pinnacle -- casi seguro linea suspendida "
+              f"o error de la fuente, no valor. Ejemplos:")
+        for m, o, b, c, e in sorted(descartadas_absurdas, key=lambda x: -x[4])[:3]:
+            print(f"     {m} / {o} @ {b} cuota {c:.2f} -> edge {e:.0%}")
+
+    columnas = ["league", "commence_time", "match", "market", "line", "outcome",
+                "book", "operator", "book_odds", "pinnacle_odds", "fair_prob",
+                "edge", "edge_proporcional", "kelly_stake_frac"]
     if not filas:
         # DataFrame vacio PERO con columnas -- que no haya oportunidades es un
         # resultado legitimo y frecuente, no un error; devolver un frame sin
@@ -270,9 +333,14 @@ def main():
 
     if args.fetch:
         dfs = []
-        for liga in LEAGUES:
+        ligas = discover_active_soccer(excluir_femenino=True)
+        # Iterar los VALORES (sport_key), no las claves -- ver el mismo bug
+        # documentado en clv_tracker._bajar_feed().
+        claves = list(ligas.values())
+        print(f"Competencias activas descubiertas: {len(claves)}")
+        for liga in claves:
             try:
-                d = fetch_upcoming_odds(liga)
+                d = fetch_upcoming_odds(liga, markets=MARKETS_CON_TOTALES)
                 if not d.empty:
                     dfs.append(d)
             except Exception as e:
