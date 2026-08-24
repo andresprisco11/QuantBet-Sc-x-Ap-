@@ -281,6 +281,7 @@ def actualizar_cierre(ventana_horas: float = VENTANA_CIERRE_HORAS) -> None:
     ahora = _ahora()
     n = 0
     fuera_ventana = 0
+    ya_empezados = 0
     for i in log.index[pend]:
         clave = (log.at[i, "match"], log.at[i, "outcome"])
         if clave not in justas:
@@ -291,6 +292,16 @@ def actualizar_cierre(ventana_horas: float = VENTANA_CIERRE_HORAS) -> None:
                       - ahora).total_seconds() / 3600.0
         except Exception:
             faltan = np.nan
+        # BUG REAL corregido (2026-08-23): se verificaba el limite SUPERIOR
+        # (no cerrar demasiado pronto) pero NUNCA el inferior. Una apuesta
+        # con faltan = -0.78 (partido 47 min en juego) pasaba el filtro y se
+        # cerraba contra una linea EN VIVO. Caso concreto que lo delato:
+        # Man City vs Bournemouth, cuota tomada 6.75, Pinnacle "cierre" 3.00,
+        # CLV +113% -- un numero espectacular y completamente falso.
+        # El cierre tiene que ser PRE-partido, siempre.
+        if not np.isnan(faltan) and faltan < 0:
+            ya_empezados += 1
+            continue
         if not np.isnan(faltan) and faltan > ventana_horas:
             fuera_ventana += 1
             continue
@@ -325,6 +336,9 @@ def actualizar_cierre(ventana_horas: float = VENTANA_CIERRE_HORAS) -> None:
           f"Pendientes totales: {int(log['clv'].isna().sum())}")
     if fuera_ventana:
         print(f"   -> volver a correr este comando mas cerca de esos partidos.")
+    if ya_empezados:
+        print(f"   [PERDIDAS] {ya_empezados} no se cerraron porque su partido YA arranco. "
+              f"Un cierre contra linea en vivo no mide nada, asi que se descartan.")
 
 
 def reporte(max_horas: float) -> None:
