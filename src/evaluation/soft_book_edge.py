@@ -252,10 +252,19 @@ def find_edges(raw: pd.DataFrame, min_edge: float, metodo: str = "shin",
         away = grp["away_team"].iloc[0]
         liga = grp["league"].iloc[0]
         inicio = grp["commence_time"].iloc[0]
-        n_vias = 3 if mercado == "h2h" else 2
-
         sharp = grp[grp["bookmaker"] == SHARP_BOOK]
         precios_sharp = dict(zip(sharp["outcome_name"], sharp["outcome_price_decimal"]))
+
+        # NUMERO DE VIAS INFERIDO DEL DATO, no hardcodeado (2026-08-25).
+        # Antes era "3 si es h2h, si no 2", lo cual es correcto SOLO para
+        # futbol. En NBA y tenis el h2h tiene 2 vias (no hay empate), asi
+        # que la regla vieja habria descartado en silencio TODOS los
+        # partidos de esos deportes -- un fallo mudo, sin error ni aviso.
+        # Se toma la cantidad de resultados distintos que cotiza el mercado
+        # completo y se exige que el libro sharp los tenga todos.
+        n_vias = grp["outcome_name"].nunique()
+        if n_vias < 2:
+            continue
         # Sin TODAS las vias del libro sharp no hay referencia -- se salta,
         # no se estima la faltante.
         if len(precios_sharp) != n_vias:

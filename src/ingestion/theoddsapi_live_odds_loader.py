@@ -180,6 +180,42 @@ def _get_with_retries(url: str, params: dict, espaciar: bool = True) -> requests
     raise RuntimeError(f"Se agotaron los reintentos contra {url}") from last_exc
 
 
+# Prefijos de sport_key por deporte. Se usan para descubrir competencias
+# activas sin mantener listas a mano (ver discover_active).
+PREFIJOS_DEPORTE = {
+    "futbol": ("soccer_",),
+    "nba": ("basketball_nba",),
+    "basquet": ("basketball_",),
+    "tenis": ("tennis_",),
+    "nfl": ("americanfootball_nfl",),
+}
+
+
+def discover_active(deportes=("futbol",), excluir_femenino: bool = False) -> dict:
+    """Version general de discover_active_soccer: descubre competencias
+    ACTIVAS de los deportes pedidos, preguntandoselo a la API.
+
+    La estrategia sharp-vs-blandas no depende del deporte -- solo necesita
+    que Pinnacle cotice el evento. Por eso extender a NBA/tenis es cambiar
+    el prefijo, no reescribir nada.
+
+    NOTA sobre tenis y NBA: su mercado h2h tiene 2 vias (no hay empate).
+    find_edges() infiere el numero de vias del dato desde el 2026-08-25,
+    asi que funciona sin cambios. Antes de esa fecha los habria descartado
+    en silencio."""
+    prefijos = tuple(pref for dep in deportes for pref in PREFIJOS_DEPORTE.get(dep, (dep,)))
+    resp = _get_with_retries(f"{BASE_URL}/sports", {"apiKey": _api_key()})
+    activos = {}
+    for s in resp.json():
+        key = str(s.get("key", ""))
+        if not key.startswith(prefijos) or not s.get("active"):
+            continue
+        if excluir_femenino and ("women" in key or "womens" in key):
+            continue
+        activos[key.upper()] = key
+    return activos
+
+
 def discover_active_soccer(excluir_femenino: bool = False) -> dict:
     """Devuelve {NOMBRE: sport_key} de TODAS las competencias de futbol
     ACTIVAS ahora mismo, preguntandoselo a la API en vez de mantener una

@@ -59,11 +59,33 @@ import pandas as pd
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 from src.ingestion.theoddsapi_live_odds_loader import (
-    fetch_upcoming_odds, ALL_KEYS, MARKETS_CON_TOTALES, discover_active_soccer)
+    fetch_upcoming_odds, ALL_KEYS, MARKETS_CON_TOTALES, discover_active_soccer,
+    discover_active)
 from src.evaluation.soft_book_edge import find_edges, devig_shin, SHARP_BOOK
 from src.tracking.run_logger import RUNS_DIR
 
 CLV_LOG = RUNS_DIR / "clv_log.csv"
+
+# Minutos durante los cuales un checkpoint de barrido interrumpido se
+# considera reutilizable. Pasado ese tiempo las cuotas ya son viejas y
+# conviene volver a bajarlas aunque cueste creditos.
+CHECKPOINT_VALIDO_MIN = 30.0
+
+# --- Casas donde el usuario PUEDE apostar de verdad ----------------------
+# HALLAZGO CLAVE (2026-08-25): el usuario vive en Nueva York, y **76% de las
+# oportunidades detectadas estaban en casas que no puede usar** (Unibet /
+# Kindred, 1xBet, Coolbet dominan la deteccion pero no operan ahi).
+# Sin esta distincion se pasa la semana validando un edge inalcanzable.
+# El reporte ahora separa ambos grupos: el general responde "¿existe el
+# fenomeno?" y el accesible responde "¿puedo capturarlo yo?".
+BOOKS_ACCESIBLES = {
+    # legales en NY
+    "fanduel", "draftkings", "betmgm", "williamhill_us", "betrivers",
+    "fanatics", "espnbet", "ballybet", "resortsworld",
+    # offshore que aceptan clientes de EEUU (zona gris -- decision del usuario)
+    "betonlineag", "lowvig", "betus", "bovada", "mybookieag",
+    "betanysports", "gtbets", "everygame",
+}
 
 COLUMNAS = [
     "bet_id", "registrada_utc", "league", "commence_time", "match", "outcome",
@@ -113,18 +135,40 @@ def _guardar_log(df: pd.DataFrame) -> None:
     df.to_csv(CLV_LOG, index=False)
 
 
-def _bajar_feed(ligas=None, markets: str = MARKETS_CON_TOTALES) -> pd.DataFrame:
+# Deportes que se barren. Cambiar esta lista es TODO lo que hace falta para
+# extender a NBA/tenis -- la deteccion sharp-vs-blandas no depende del
+# deporte. Se deja en futbol hasta tener veredicto de CLV: sumar deportes
+# ahora gastaria creditos sin acelerar la respuesta (ver roadmap 2026-08-23).
+DEPORTES = ("futbol",)
+
+
+def _bajar_feed(ligas=None, markets: str = MARKETS_CON_TOTALES, deportes=None) -> pd.DataFrame:
     """Baja el feed de TODAS las competencias configuradas (no solo las 4 con
     historico) y con h2h+totales. Esto ataca el cuello de botella real: el
     CLV necesita 100+ apuestas para decir algo, y con 4 ligas y solo 1X2 se
     juntaban ~16 por fin de semana."""
-    # Checkpoint incremental: cada liga se guarda apenas llega. Si el
-    # internet se corta a mitad del barrido (44 llamadas seguidas), los
-    # creditos ya gastados NO se pierden -- la proxima corrida reusa lo
-    # descargado en vez de volver a pagarlo.
+    # Checkpoint incremental REAL. Correccion de una promesa mal cumplida
+    # (2026-08-25): la version anterior ESCRIBIA el checkpoint pero nunca lo
+    # leia de vuelta, asi que no ahorraba ni un credito -- solo evitaba
+    # perder los datos. Ahora si: si existe un checkpoint reciente (menos de
+    # CHECKPOINT_VALIDO_MIN minutos), las ligas que ya figuran ahi NO se
+    # vuelven a pedir. Un barrido cortado a mitad se retoma donde quedo.
     ckpt = RUNS_DIR / "_feed_checkpoint.csv"
-    dfs = []
-    ligas = ligas or discover_active_soccer(excluir_femenino=True)
+    previo, ligas_ya = None, set()
+    if ckpt.exists():
+        edad_min = (_ahora().timestamp() - ckpt.stat().st_mtime) / 60.0
+        if edad_min <= CHECKPOINT_VALIDO_MIN:
+            try:
+                previo = pd.read_csv(ckpt)
+                ligas_ya = set(previo["league"].dropna().unique())
+                print(f"[CHECKPOINT] Retomando un barrido cortado hace {edad_min:.0f} min: "
+                      f"{len(ligas_ya)} liga(s) ya descargadas, no se vuelven a pagar.")
+            except Exception:
+                previo, ligas_ya = None, set()
+        else:
+            ckpt.unlink()   # viejo, no sirve
+    dfs = [previo] if previo is not None else []
+    ligas = ligas or discover_active(deportes or DEPORTES, excluir_femenino=True)
     # BUG REAL corregido (2026-08-22): discover_active_soccer() devuelve un
     # dict {NOMBRE: sport_key}, y iterar un dict en Python da las CLAVES
     # ('ARGENTINA_PRIMERA_DIVISION'), no los sport_key. Eso hacia fallar 43
@@ -134,6 +178,9 @@ def _bajar_feed(ligas=None, markets: str = MARKETS_CON_TOTALES) -> pd.DataFrame:
     print(f"Competencias activas descubiertas: {len(claves)}")
     ok = 0
     for liga in claves:
+        if liga in ligas_ya:
+            ok += 1
+            continue
         try:
             d = fetch_upcoming_odds(liga, markets=markets)
             if not d.empty:
@@ -355,10 +402,15 @@ def reporte(max_horas: float) -> None:
         print("\nTodavia no hay ninguna cerrada. Correr --update-closing cerca del kickoff.")
         return
 
-    buenas = cerradas[cerradas["horas_antes_cierre"].abs() <= max_horas]
-    print(f"Con cierre tomado a menos de {max_horas}h del arranque: {len(buenas)}\n")
+    buenas = cerradas[(cerradas["horas_antes_cierre"] >= 0) &
+                      (cerradas["horas_antes_cierre"] <= max_horas)]
+    print(f"Con cierre valido (0 a {max_horas}h antes del arranque): {len(buenas)}")
+    acc = buenas[buenas["book"].isin(BOOKS_ACCESIBLES)]
+    print(f"   de esas, en casas donde PODES apostar: {len(acc)} "
+          f"({len(acc)/len(buenas)*100 if len(buenas) else 0:.0f}%)\n")
 
-    for etiqueta, d in [("TODAS las cerradas", cerradas), (f"solo <={max_horas}h", buenas)]:
+    for etiqueta, d in [(f"cierre valido -- TODAS las casas", buenas),
+                        (f"cierre valido -- SOLO casas accesibles", acc)]:
         if d.empty:
             continue
         clv = d["clv"]
