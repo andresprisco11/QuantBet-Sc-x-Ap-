@@ -563,11 +563,22 @@ def agenda(ventana_horas: float, tz_offset: float) -> None:
         t, cubre = mejor
         hora_local = (ahora + pd.Timedelta(hours=t + tz_offset)).strftime("%a %d %I:%M %p")
         ligas = hoy.loc[list(cubre), "league"].nunique()
-        momentos.append((hora_local, len(cubre), ligas))
+        # El limite es el arranque MAS TEMPRANO del grupo: pasado ese momento
+        # esa fila ya no se puede cerrar.
+        t_limite = min(hoy.at[i, "horas"] for i in cubre)
+        limite = (ahora + pd.Timedelta(hours=t_limite + tz_offset)).strftime("%I:%M %p")
+        momentos.append((hora_local, len(cubre), ligas, limite))
         sin_cubrir -= cubre
 
-    for hora_local, n, ligas in momentos:
-        print(f"   {hora_local:<24} cierra {n:>3} filas  (~{ligas*6} creditos)")
+    # Se muestra un RANGO, no una hora exacta. La ventana son `ventana_horas`
+    # ANTES del arranque, asi que cualquier momento entre el inicio del rango
+    # y el kickoff mas temprano del grupo sirve igual. Mostrar solo el punto
+    # optimo generaba ansiedad innecesaria y corridas tarde por creer que
+    # habia que dar en el clavo.
+    for hora_local, n, ligas, limite in momentos:
+        print(f"   entre {hora_local} y {limite}   cierra {n:>3} filas  (~{ligas*6} creditos)")
+    print(f"\n   (cualquier momento DENTRO del rango sirve igual -- no hay que "
+          f"acertar la hora exacta.\n    Pasado el limite, esas apuestas se pierden.)")
     if sin_cubrir:
         print(f"\n   [OJO] {len(sin_cubrir)} filas no entran en ningun horario razonable "
               f"-- arrancan muy pronto o muy dispersas.")
