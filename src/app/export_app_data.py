@@ -208,6 +208,8 @@ def main():
                     help="salta la resolucion de escudos (no toca la red)")
     ap.add_argument("--reintentar-escudos", action="store_true",
                     help="vuelve a pedir los escudos cacheados como fallidos")
+    ap.add_argument("--reemplazar", action="store_true",
+                    help="borra data.js y deja SOLO las ligas de esta corrida")
     args = ap.parse_args()
 
     # BUG CORREGIDO: antes se comparaba la cadena ENTERA contra GRUPOS, asi que
@@ -259,6 +261,29 @@ def main():
                 u = escudos.get(p[lado]["name"])
                 if u:
                     p[lado]["crest"] = u
+
+    # --- FUSION con lo que ya estaba en data.js ---
+    # Antes se reescribia el archivo entero, asi que correr `--ligas top5`
+    # BORRABA Japon y Argentina de la app sin avisar. Ahora se reemplazan
+    # SOLO las ligas de esta corrida y el resto se conserva: es el
+    # comportamiento que uno espera al actualizar una parte.
+    ligas_nuevas = {p["league"] for p in partidos}
+    conservados = []
+    destino_js = APP_DIR / "data.js"
+    if not args.reemplazar and destino_js.exists():
+        try:
+            txt = destino_js.read_text(encoding="utf-8")
+            crudo = txt[txt.index("{"):txt.rindex("}") + 1]
+            previo = json.loads(crudo)
+            conservados = [p for p in previo.get("partidos", [])
+                           if p.get("league") not in ligas_nuevas]
+        except Exception as e:
+            print(f"[AVISO] no se pudo leer data.js previo ({str(e)[:40]}); "
+                  f"se escribe solo lo de esta corrida.")
+    if conservados:
+        print(f"conservadas {len({p['league'] for p in conservados})} ligas previas "
+              f"({len(conservados)} partidos) que no venian en esta corrida")
+    partidos = sorted(partidos + conservados, key=lambda p: p.get("ts", ""))
 
     data = {
         "generado": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
