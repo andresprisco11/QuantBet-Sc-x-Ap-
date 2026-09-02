@@ -67,6 +67,24 @@ CANDIDATOS = [
 MIN_CASAS = 4
 SALIDA = RUNS_DIR / "props_dispersion.csv"
 
+# Mercados de EXCHANGE, no de casa de apuestas. Betfair y compañia devuelven
+# `h2h_lay` (el lado contrario de la apuesta) y su overround es NEGATIVO
+# -- las cuotas lay suman menos de 1 porque el exchange cobra comision sobre
+# la ganancia, no margen sobre el precio.
+#
+# Mezclarlos arruina la comparacion por dos motivos: (a) su dispersion es
+# artificialmente baja porque los pocos exchanges que hay estan arbitrados
+# entre si, y (b) no son un "mercado secundario mal preciado", son otro tipo
+# de producto. En la primera corrida h2h_lay aparecio con ratio 0.05 y
+# t=-8.89, un numero espectacular que no significaba nada.
+MERCADOS_EXCHANGE = {"h2h_lay", "spreads_lay", "totals_lay", "outrights_lay"}
+
+# Un mercado necesita este minimo de pares para que el t pareado signifique
+# algo. `spreads` dio 1 solo par en LaLiga: el handicap asiatico se fragmenta
+# en muchas lineas (-0.5, -0.75, -1.0...) y casi ninguna casa comparte la
+# misma, asi que casi nunca hay 4 casas sobre la linea identica.
+MIN_PARES = 8
+
 
 def _resolver(liga: str) -> str:
     return ALL_KEYS.get(liga, liga)
@@ -102,6 +120,55 @@ def bajar(liga: str, mercados: str) -> pd.DataFrame:
     return pd.DataFrame(filas)
 
 
+def bajar_por_evento(liga: str, mercados: str, max_eventos: int) -> pd.DataFrame:
+    """Los mercados adicionales (btts, alternate_totals, team_totals) solo
+    existen en /sports/{key}/events/{id}/odds -- uno por evento.
+
+    Se baja h2h en la MISMA llamada para cada evento, no en una llamada
+    aparte de liga: la comparacion es pareada y necesita que las dos
+    dispersiones sean del mismo instante. Si el 1X2 se tomara media hora
+    antes, parte de la diferencia seria movimiento de linea y no desacuerdo.
+    """
+    sk = _resolver(liga)
+    r, err = _pedir_sin_reintentos(f"{BASE_URL}/sports/{sk}/events",
+                                   {"apiKey": _api_key()})
+    if err or not r:
+        print(f"[ERROR] no se pudo listar eventos: {err}")
+        return pd.DataFrame()
+    eventos = r.json()[:max_eventos]
+    n_mk = len(mercados.split(","))
+    print(f"{len(eventos)} eventos x {n_mk} mercados x 3 regiones "
+          f"(~{len(eventos)*n_mk*3} creditos)")
+
+    filas = []
+    for i, ev in enumerate(eventos, 1):
+        r2, err2 = _pedir_sin_reintentos(
+            f"{BASE_URL}/sports/{sk}/events/{ev['id']}/odds",
+            {"apiKey": _api_key(), "regions": FETCH_REGIONS,
+             "markets": mercados, "oddsFormat": "decimal"})
+        if err2 or not r2:
+            print(f"   [{i}/{len(eventos)}] {err2}")
+            continue
+        d = r2.json()
+        n = 0
+        for bm in d.get("bookmakers", []):
+            for mk in bm.get("markets", []):
+                for oc in mk.get("outcomes", []):
+                    n += 1
+                    filas.append({
+                        "event_id": ev.get("id"),
+                        "commence_time": ev.get("commence_time"),
+                        "partido": f"{ev.get('home_team')} vs {ev.get('away_team')}",
+                        "casa": OPERATOR_GROUP.get(bm.get("key"), bm.get("key")),
+                        "mercado": mk.get("key"), "via": oc.get("name"),
+                        "linea": oc.get("point"), "cuota": oc.get("price"),
+                        "desc": oc.get("description"),
+                    })
+        print(f"   [{i}/{len(eventos)}] {ev.get('home_team')[:20]:<21} "
+              f"v {ev.get('away_team')[:20]:<21} {n:>4} cuotas")
+    return pd.DataFrame(filas)
+
+
 def medir(g: pd.DataFrame) -> dict | None:
     """Dispersion y overround de un (evento, mercado, linea, descripcion)."""
     vias = sorted(g["via"].dropna().unique())
@@ -130,7 +197,7 @@ def analizar(raw: pd.DataFrame) -> pd.DataFrame:
     """Una fila por (evento, mercado). Las lineas de un mismo mercado se
     promedian: over 2.5 y over 3.5 son apuestas distintas pero pertenecen al
     mismo mercado, y lo que se compara es el MERCADO contra el 1X2."""
-    raw = raw.copy()
+    raw = raw[~raw["mercado"].isin(MERCADOS_EXCHANGE)].copy()
     raw["_linea"] = raw["linea"].fillna(-999.0)
     raw["_desc"] = raw["desc"].fillna("")
     filas = []
@@ -168,8 +235,9 @@ def reportar(t: pd.DataFrame) -> None:
     for mercado, g in t[t["mercado"] != "h2h"].groupby("mercado"):
         g = g.set_index("event_id")
         comun = g.index.intersection(base.index)
-        if len(comun) < 5:
-            print(f"{mercado:<20}{len(comun):>7}   (menos de 5 pares, se omite)")
+        if len(comun) < MIN_PARES:
+            print(f"{mercado:<20}{len(comun):>7}   (menos de {MIN_PARES} pares, "
+                  f"no se puede concluir)")
             continue
         dp = g.loc[comun, "dispersion"].astype(float)
         dh = base.loc[comun, "dispersion"].astype(float)
@@ -287,6 +355,9 @@ def main():
                     help="descubre que mercados soporta la liga y termina")
     ap.add_argument("--probe-evento", action="store_true",
                     help="ademas prueba el endpoint por evento (mercados adicionales)")
+    ap.add_argument("--por-evento", action="store_true",
+                    help="usa el endpoint por evento (btts, alternate_totals, ...)")
+    ap.add_argument("--max-eventos", type=int, default=15)
     args = ap.parse_args()
 
     if args.probe or args.probe_evento:
@@ -294,9 +365,12 @@ def main():
         return
 
     mercados = "h2h," + args.mercados
-    n_mk = len(mercados.split(","))
-    print(f"Bajando {n_mk} mercados x 3 regiones (~{n_mk*3} creditos)...")
-    raw = bajar(args.liga, mercados)
+    if args.por_evento:
+        raw = bajar_por_evento(args.liga, mercados, args.max_eventos)
+    else:
+        n_mk = len(mercados.split(","))
+        print(f"Bajando {n_mk} mercados x 3 regiones (~{n_mk*3} creditos)...")
+        raw = bajar(args.liga, mercados)
     if raw.empty:
         print("Feed vacio.")
         return
