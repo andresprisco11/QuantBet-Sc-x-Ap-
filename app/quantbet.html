@@ -82,8 +82,10 @@ td:last-child{color:var(--txt);font-weight:600}
   <div class="tabs" id="tabs"></div>
   <div id="view"></div>
   <div class="foot">
-    modelo = probabilidad propia · mkt = probabilidad implicita del mercado desvigueada<br>
-    la marca vertical sobre la barra es el mercado. barra a la derecha de la marca = el modelo ve mas valor<br>
+    mkt = probabilidad implicita mediana entre casas, desvigueada con Shin<br>
+    <b>la columna del modelo esta vacia a proposito</b>: el modelo v4 dio peso optimo 0 contra el
+    mercado, mostrar su salida seria fingir que sabe algo<br>
+    premio = cuanto paga la mejor casa sobre la mediana. Es lo unico capturable sin modelo<br>
     <span style="color:var(--neg)">niguna cifra de esta pantalla esta validada como edge capturable</span>
   </div>
 </div>
@@ -104,16 +106,25 @@ function crest(t){
 function outcomeRow(o){
   const d = (o.model!=null && o.mkt!=null) ? o.model-o.mkt : null;
   const cls = d==null?'zero':(Math.abs(d)<0.005?'zero':(d>0?'pos':'neg'));
+  const ancho = (o.model!=null?o.model:o.mkt)*100;
+  // premio: lo unico capturable sin modelo -- buscar mejor precio, no predecir
+  const prem = o.premio!=null && o.premio>0.01
+    ? `<span style="color:var(--pos)">+${(o.premio*100).toFixed(1)}%</span>` : '';
   return `<div class="row">
     <div class="rl"><span class="nm">${o.name}</span>
       <span class="rt">
-        <span class="p">${pct(o.model)}</span>
-        <span>mkt ${o.mkt!=null?pct(o.mkt):'—'}</span>
-        <span class="d ${cls}">${d!=null?cents(d):''}</span>
+        ${o.model!=null?`<span class="p">${pct(o.model)}</span>`:''}
+        <span class="${o.model!=null?'':'p'}">mkt ${o.mkt!=null?pct(o.mkt):'—'}</span>
+        ${d!=null?`<span class="d ${cls}">${cents(d)}</span>`:''}
       </span></div>
-    <div class="track"><div class="fill" style="width:${Math.min(100,o.model*100)}%"></div>
-      ${o.mkt!=null?`<div class="mk" style="left:calc(${Math.min(100,o.mkt*100)}% - 1px)"></div>`:''}
-    </div></div>`;
+    <div class="track"><div class="fill" style="width:${Math.min(100,ancho)}%"></div>
+      ${(o.model!=null&&o.mkt!=null)?`<div class="mk" style="left:calc(${Math.min(100,o.mkt*100)}% - 1px)"></div>`:''}
+    </div>
+    ${o.mejor_cuota?`<div style="font-size:10px;color:var(--dim);margin-top:3px;
+      display:flex;gap:8px"><span>mejor <b style="color:var(--txt)">${o.mejor_cuota}</b>
+      en ${o.mejor_casa}</span>${prem}
+      <span style="margin-left:auto">${o.n_casas} casas · disp ${o.dispersion}</span></div>`:''}
+  </div>`;
 }
 
 function matchCard(m){
