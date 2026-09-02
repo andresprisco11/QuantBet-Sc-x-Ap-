@@ -369,7 +369,14 @@ def fetch_upcoming_odds(league_key: str, regions: str = FETCH_REGIONS,
     # Acepta un nombre configurado O un sport_key directo -- necesario para
     # que funcione con discover_active_soccer(), que devuelve competencias
     # que no estan en ALL_KEYS.
-    sport_key = ALL_KEYS.get(league_key, league_key if league_key.startswith("soccer_") else None)
+    # BUG CORREGIDO 2026-09-01: el guard era `startswith("soccer_")`, asi que
+    # rechazaba TODA clave de NBA y tenis aunque discover_active() las
+    # descubriera bien. Ahora se acepta cualquier prefijo de deporte
+    # declarado en PREFIJOS_DEPORTE -- una sola fuente de verdad para los dos.
+    _PREFIJOS_VALIDOS = tuple(p for ps in PREFIJOS_DEPORTE.values() for p in ps)
+    sport_key = ALL_KEYS.get(
+        league_key,
+        league_key if league_key.startswith(_PREFIJOS_VALIDOS) else None)
     if sport_key is None:
         raise ValueError(f"'{league_key}' no esta en ALL_KEYS ni parece un sport_key: {list(ALL_KEYS)}")
 

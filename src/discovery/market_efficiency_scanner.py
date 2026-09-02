@@ -80,6 +80,11 @@ SHARP_BOOKS = {"pinnacle"}
 # Con 2 casas el desvio estandar es basicamente ruido de una sola comparacion.
 MIN_CASAS = 4
 
+# Un ranking sobre 3 eventos no es un ranking. Con pocos eventos, un solo
+# partido raro mueve toda la metrica -- se vio en la primera corrida:
+# brazil_serie_b dio 0.0075 y 0.0212 en dos scans separados por minutos.
+MIN_EVENTOS = 8
+
 SNAPSHOT = RUNS_DIR / "market_efficiency_latest.csv"
 HISTORICO = RUNS_DIR / "market_efficiency_historico.csv"
 
@@ -165,10 +170,19 @@ def escanear_liga(raw: pd.DataFrame, liga: str) -> dict | None:
         return None
     raw = raw.copy()
     raw["_linea"] = raw["outcome_point"].fillna(-999.0)
+    ahora = pd.Timestamp.now(tz="UTC")
     filas = []
     for _, grp in raw.groupby(["event_id", "market", "_linea"]):
         m = medir_evento(grp)
         if m:
+            # CONFOUND CENTRAL: un partido a 20 dias tiene dispersion alta
+            # porque las casas todavia no convergieron, no porque el mercado
+            # sea ineficiente. Sin esta columna el ranking premia lejania.
+            try:
+                ini = pd.to_datetime(grp["commence_time"].iloc[0], utc=True)
+                m["horas"] = (ini - ahora).total_seconds() / 3600.0
+            except Exception:
+                m["horas"] = float("nan")
             filas.append(m)
     if not filas:
         return None
@@ -176,11 +190,13 @@ def escanear_liga(raw: pd.DataFrame, liga: str) -> dict | None:
     return {
         "liga": liga,
         "eventos": len(d),
+        "horas_al_evento": round(d["horas"].median(), 1),
         "casas_por_evento": round(d["n_casas"].median(), 1),
         "pct_con_sharp": round(d["tiene_sharp"].mean() * 100, 1),
         "overround": round(d["overround"].median(), 4),
-        "dispersion": round(d["dispersion"].mean(), 5),
-        "premio_mejor": round(d["premio_mejor"].mean(), 4),
+        # MEDIANA, no media: con 10 eventos un partido raro secuestra la media.
+        "dispersion": round(d["dispersion"].median(), 5),
+        "premio_mejor": round(d["premio_mejor"].median(), 4),
     }
 
 
@@ -209,17 +225,24 @@ def mostrar(t: pd.DataFrame) -> None:
     print(f"\n{'='*100}")
     print("MAPA DE INEFICIENCIA -- donde discrepan las casas entre si")
     print(f"{'='*100}")
-    print(f"{'competicion':<40}{'ev':>4}{'casas':>7}{'sharp%':>8}"
+    print(f"{'competicion':<38}{'ev':>4}{'dias':>6}{'casas':>7}{'sharp%':>8}"
           f"{'overr':>8}{'dispers':>9}{'premio':>8}{'score':>7}")
     print("-" * 100)
     for _, r in t.iterrows():
-        print(f"{str(r['liga'])[:39]:<40}{int(r['eventos']):>4}{r['casas_por_evento']:>7.1f}"
+        dias = r["horas_al_evento"] / 24.0
+        alerta = " <" if dias > 7 else ""
+        print(f"{str(r['liga'])[:37]:<38}{int(r['eventos']):>4}{dias:>6.1f}"
+              f"{r['casas_por_evento']:>7.1f}"
               f"{r['pct_con_sharp']:>8.0f}{r['overround']:>8.1%}"
-              f"{r['dispersion']:>9.4f}{r['premio_mejor']:>8.2%}{r['score']:>7.2f}")
+              f"{r['dispersion']:>9.4f}{r['premio_mejor']:>8.2%}{r['score']:>7.2f}{alerta}")
     print("-" * 100)
     print("dispersion = desacuerdo entre casas sobre el mismo resultado. ES LA METRICA CENTRAL.")
     print("sharp%     = presencia de Pinnacle. BAJO ES BUENO (sin formador, la linea la pone el publico).")
     print("premio     = cuanto paga la mejor casa sobre la mediana. Es el spread capturable.")
+    print("dias       = mediana de dias hasta el evento. *** CONFOUND PRINCIPAL ***")
+    print("             Las filas marcadas con '<' estan a mas de 7 dias: su dispersion alta")
+    print("             puede ser simplemente que las casas todavia no convergieron.")
+    print("             NO se pueden comparar contra ligas que juegan pasado mañana.")
     print("overround  = peaje de la casa mediana. Alto = desatendido, pero tambien mas caro.")
     print("\n[AVISO] Esto mide DONDE MIRAR, no que apostar. Dispersion alta dice que hay")
     print("        informacion sin incorporar; NO dice que vos la tengas. El siguiente paso")
@@ -311,7 +334,17 @@ def main():
         print("\nNingun mercado con material suficiente.")
         return
 
-    t = puntuar(pd.DataFrame(filas)).sort_values("score", ascending=False)
+    bruto = pd.DataFrame(filas)
+    descartadas = bruto[bruto["eventos"] < MIN_EVENTOS]
+    t = bruto[bruto["eventos"] >= MIN_EVENTOS].copy()
+    if descartadas.empty is False:
+        print(f"\n[{len(descartadas)} competiciones descartadas por tener menos de "
+              f"{MIN_EVENTOS} eventos: {', '.join(descartadas['liga'].head(8))}"
+              f"{'...' if len(descartadas) > 8 else ''}]")
+    if t.empty:
+        print("Ninguna competicion supera el minimo de eventos.")
+        return
+    t = puntuar(t).sort_values("score", ascending=False)
     mostrar(t)
     guardar(t)
 
