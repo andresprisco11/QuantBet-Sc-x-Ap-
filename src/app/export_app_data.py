@@ -195,17 +195,24 @@ def main():
     ap.add_argument("--max-partidos", type=int, default=200)
     ap.add_argument("--sin-escudos", action="store_true",
                     help="salta la resolucion de escudos (no toca la red)")
+    ap.add_argument("--reintentar-escudos", action="store_true",
+                    help="vuelve a pedir los escudos cacheados como fallidos")
     args = ap.parse_args()
 
+    # BUG CORREGIDO: antes se comparaba la cadena ENTERA contra GRUPOS, asi que
+    # "top5,soccer_japan..." no matcheaba y "top5" se mandaba como sport_key.
+    # Los grupos se expanden token por token.
     pedido = args.liga or args.ligas
-    if pedido in GRUPOS:
-        if pedido == "todo":
+    claves = []
+    for tok in [t.strip() for t in pedido.split(",") if t.strip()]:
+        if tok == "todo":
             from src.ingestion.theoddsapi_live_odds_loader import discover_active
-            claves = list(discover_active(deportes=("futbol",)).values())
+            claves += list(discover_active(deportes=("futbol",)).values())
+        elif tok in GRUPOS:
+            claves += GRUPOS[tok]
         else:
-            claves = GRUPOS[pedido]
-    else:
-        claves = [k.strip() for k in pedido.split(",") if k.strip()]
+            claves.append(tok)
+    claves = list(dict.fromkeys(claves))
 
     print(f"Exportando {len(claves)} competicion(es) (~{len(claves)*6} creditos).\n")
 
@@ -235,7 +242,7 @@ def main():
     # --- escudos: una consulta por equipo en la vida del proyecto ---
     if partidos and not args.sin_escudos:
         nombres = [t["name"] for p in partidos for t in (p["home"], p["away"])]
-        escudos = resolver_escudos(nombres)
+        escudos = resolver_escudos(nombres, reintentar_fallidos=args.reintentar_escudos)
         for p in partidos:
             for lado in ("home", "away"):
                 u = escudos.get(p[lado]["name"])
