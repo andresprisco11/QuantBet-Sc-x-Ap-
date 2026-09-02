@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QuantBet</title>
+<style>
+:root{
+  --bg:#080f0c; --panel:#0e1a14; --panel2:#122219; --line:#1c3527;
+  --txt:#d7e8dd; --mut:#5f7d6c; --dim:#3d5548;
+  --bar:#4ea87c; --bar2:#2a5b43; --hi:#7fe0aa;
+  --pos:#7fe0aa; --neg:#e08a7f;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:13px/1.5 var(--mono);
+     -webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto;padding:14px}
+.top{display:flex;align-items:baseline;justify-content:space-between;
+     padding:4px 2px 14px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.brand{font-size:15px;letter-spacing:.22em;color:var(--hi)}
+.brand b{font-weight:600}
+.meta{font-size:10px;color:var(--dim);letter-spacing:.12em}
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.tab{padding:5px 12px;border:1px solid var(--line);background:transparent;color:var(--mut);
+     font:11px/1 var(--mono);letter-spacing:.14em;cursor:pointer;border-radius:2px}
+.tab:hover{color:var(--txt);border-color:var(--bar2)}
+.tab[aria-selected=true]{background:var(--panel2);color:var(--hi);border-color:var(--bar2)}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:3px;
+      margin-bottom:12px;overflow:hidden}
+.hd{display:flex;align-items:center;gap:10px;padding:14px 16px 12px;
+    background:linear-gradient(180deg,var(--panel2),var(--panel))}
+.crest{width:26px;height:26px;flex:0 0 26px;border-radius:50%;object-fit:contain;
+       background:var(--panel2);display:grid;place-items:center;font-size:10px;
+       font-weight:700;letter-spacing:0;border:1px solid var(--line)}
+.team{font-size:15px;font-weight:600;letter-spacing:.01em;white-space:nowrap;
+      overflow:hidden;text-overflow:ellipsis}
+.vs{color:var(--dim);font-size:11px;padding:0 2px}
+.xg{margin-left:auto;text-align:right;flex:0 0 auto;padding-left:10px}
+.xg .lbl{font-size:9px;color:var(--dim);letter-spacing:.2em}
+.xg .val{font-size:16px;color:var(--hi);font-weight:600}
+.date{padding:0 16px 10px;font-size:10px;color:var(--dim);letter-spacing:.1em}
+
+.rows{padding:4px 16px 14px}
+.row{margin:9px 0}
+.rl{display:flex;align-items:baseline;font-size:12px;margin-bottom:5px}
+.rl .nm{font-weight:600}
+.rl .rt{margin-left:auto;color:var(--mut);font-size:11px;display:flex;gap:8px;align-items:baseline}
+.rl .p{color:var(--txt);font-size:13px;font-weight:600}
+.d{font-weight:600;min-width:34px;text-align:right}
+.d.pos{color:var(--pos)} .d.neg{color:var(--neg)} .d.zero{color:var(--dim)}
+.track{position:relative;height:9px;background:#0b1712;border-radius:1px;overflow:hidden}
+.fill{position:absolute;inset:0 auto 0 0;background:var(--bar);border-radius:1px}
+.mk{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--txt);opacity:.85}
+
+.sec{border-top:1px solid var(--line);padding:12px 16px}
+.sech{font-size:9px;color:var(--dim);letter-spacing:.24em;margin-bottom:9px}
+.sc{display:flex;align-items:center;gap:10px;margin:5px 0;font-size:12px}
+.sc .k{width:34px;color:var(--mut)}
+.sc .t{flex:1;height:8px;background:#0b1712;border-radius:1px;overflow:hidden}
+.sc .f{height:100%;background:var(--bar2)}
+.sc .v{width:44px;text-align:right;color:var(--txt)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-size:9px;color:var(--dim);letter-spacing:.2em;text-align:left;font-weight:400;
+   padding-bottom:7px}
+th:last-child,td:last-child{text-align:right}
+td{padding:4px 0;border-top:1px solid rgba(28,53,39,.5);color:var(--mut)}
+td:last-child{color:var(--txt);font-weight:600}
+
+.note{border:1px solid var(--line);background:var(--panel);border-radius:3px;
+      padding:12px 14px;font-size:11px;color:var(--mut);line-height:1.65;margin-bottom:12px}
+.note b{color:var(--hi);font-weight:600}
+.empty{padding:40px 16px;text-align:center;color:var(--dim);font-size:12px}
+.foot{margin-top:16px;padding-top:12px;border-top:1px solid var(--line);
+      font-size:10px;color:var(--dim);letter-spacing:.06em;line-height:1.8}
+@media(max-width:520px){.team{font-size:13px}.wrap{padding:10px}}
+</style></head><body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">QUANT<b>BET</b></div>
+    <div class="meta" id="stamp">—</div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div id="view"></div>
+  <div class="foot">
+    modelo = probabilidad propia · mkt = probabilidad implicita del mercado desvigueada<br>
+    la marca vertical sobre la barra es el mercado. barra a la derecha de la marca = el modelo ve mas valor<br>
+    <span style="color:var(--neg)">niguna cifra de esta pantalla esta validada como edge capturable</span>
+  </div>
+</div>
+<script src="data.js"></script>
+<script>
+const DATA = window.QB_DATA || {generado:null, partidos:[]};
+
+const pct = v => (v*100).toFixed(0)+'%';
+const cents = v => { const c = Math.round(v*100);
+  return (c>0?'+':'')+c+'¢'; };
+
+function crest(t){
+  if(t.crest) return `<img class="crest" src="${t.crest}" alt="" onerror="
+    this.outerHTML='<div class=crest style=color:${t.color||'#4ea87c'}>${(t.abbr||t.name.slice(0,3)).toUpperCase()}</div>'">`;
+  return `<div class="crest" style="color:${t.color||'#4ea87c'}">${(t.abbr||t.name.slice(0,3)).toUpperCase()}</div>`;
+}
+
+function outcomeRow(o){
+  const d = (o.model!=null && o.mkt!=null) ? o.model-o.mkt : null;
+  const cls = d==null?'zero':(Math.abs(d)<0.005?'zero':(d>0?'pos':'neg'));
+  return `<div class="row">
+    <div class="rl"><span class="nm">${o.name}</span>
+      <span class="rt">
+        <span class="p">${pct(o.model)}</span>
+        <span>mkt ${o.mkt!=null?pct(o.mkt):'—'}</span>
+        <span class="d ${cls}">${d!=null?cents(d):''}</span>
+      </span></div>
+    <div class="track"><div class="fill" style="width:${Math.min(100,o.model*100)}%"></div>
+      ${o.mkt!=null?`<div class="mk" style="left:calc(${Math.min(100,o.mkt*100)}% - 1px)"></div>`:''}
+    </div></div>`;
+}
+
+function matchCard(m){
+  const mx = Math.max(...(m.scores||[{p:1}]).map(s=>s.p));
+  return `<div class="card">
+    <div class="hd">
+      ${crest(m.home)}<span class="team">${m.home.name}</span>
+      <span class="vs">vs</span>
+      ${crest(m.away)}<span class="team">${m.away.name}</span>
+      ${m.xg?`<div class="xg"><div class="lbl">XG</div>
+        <div class="val">${m.xg[0].toFixed(2)}-${m.xg[1].toFixed(2)}</div></div>`:''}
+    </div>
+    <div class="date">${m.date||''}${m.league?' · '+m.league:''}</div>
+    <div class="rows">${(m.outcomes||[]).map(outcomeRow).join('')}</div>
+    ${m.scores?.length?`<div class="sec"><div class="sech">LIKELIEST SCORES</div>
+      ${m.scores.map(s=>`<div class="sc"><span class="k">${s.s}</span>
+        <span class="t"><span class="f" style="width:${s.p/mx*100}%"></span></span>
+        <span class="v">${(s.p*100).toFixed(1)}%</span></div>`).join('')}</div>`:''}
+    ${m.bets?.length?`<div class="sec"><table>
+      <tr><th>BET</th><th>MODEL</th></tr>
+      ${m.bets.map(b=>`<tr><td>${b.name}</td><td>${pct(b.p)}</td></tr>`).join('')}
+    </table></div>`:''}
+  </div>`;
+}
+
+const TABS = [
+  {id:'futbol', lbl:'FUTBOL'},
+  {id:'caballos', lbl:'CARRERAS'},
+  {id:'salud',  lbl:'SALUD DEL SISTEMA'},
+];
+let activo = 'futbol';
+
+function render(){
+  document.getElementById('stamp').textContent = DATA.generado || 'sin datos';
+  document.getElementById('tabs').innerHTML = TABS.map(t=>
+    `<button class="tab" role="tab" aria-selected="${t.id===activo}" data-t="${t.id}">${t.lbl}</button>`).join('');
+  const v = document.getElementById('view');
+  if(activo==='futbol'){
+    const ms = DATA.partidos||[];
+    v.innerHTML = ms.length ? ms.map(matchCard).join('')
+      : `<div class="card"><div class="empty">Sin partidos cargados.<br>
+         Corre <b>export_app_data.py</b> para generar data.js</div></div>`;
+  } else if(activo==='caballos'){
+    v.innerHTML = `<div class="note"><b>Pendiente.</b> Mercado pari-mutuel: la cuota la fija
+      el publico, no un formador de precios. Es la unica estructura donde el blend
+      con modelo propio dio peso distinto de cero historicamente (Benter, HKJC).<br><br>
+      Requiere fuente de datos distinta a The Odds API.</div>`;
+  } else {
+    const s = DATA.salud||{};
+    v.innerHTML = `<div class="note">
+      <b>VEREDICTO DEL EXPERIMENTO CLV</b> — n=${s.n??105} apuestas independientes<br><br>
+      movimiento Pinnacle &nbsp; <span style="color:var(--neg)">${s.mov??'-5.06%'}</span>
+        &nbsp; t=${s.t_mov??'-3.49'}<br>
+      CLV medio &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${s.clv??'+0.06%'}<br><br>
+      Tesis cerradas: modelo v4 vs mercado · parlays largos · arbitraje sharp-vs-blanda.<br>
+      <b>Edge capturable demostrado: cero.</b> Cualquier cifra de la pestaña FUTBOL es
+      opinion del modelo, no ventaja validada.</div>`;
+  }
+  document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{activo=b.dataset.t;render();});
+}
+render();
+</script></body></html>
