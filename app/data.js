@@ -1,15 +1,1145 @@
 // Generado por src/app/export_app_data.py -- no editar a mano.
 window.QB_DATA = {
-  "generado": "2026-09-02 02:01 UTC",
+  "generado": "2026-09-02 04:22 UTC",
   "ligas": [
     "soccer_argentina_primera_division",
     "soccer_epl",
     "soccer_france_ligue_one",
     "soccer_germany_bundesliga",
     "soccer_italy_serie_a",
+    "soccer_japan_j_league",
     "soccer_spain_la_liga"
   ],
   "partidos": [
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-02 10:00 UTC",
+      "ts": "2026-09-02T10:00:00Z",
+      "home": {
+        "name": "FC Machida Zelvia",
+        "abbr": "FMZ",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/99zl6k1590070905.png"
+      },
+      "away": {
+        "name": "Kawasaki Frontale",
+        "abbr": "KFF",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/c6pot51578239112.png"
+      },
+      "outcomes": [
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2569,
+          "dispersion": 0.0046,
+          "mejor_cuota": 3.75,
+          "mejor_casa": "coolbet",
+          "premio": 0.0714,
+          "n_casas": 31
+        },
+        {
+          "name": "FMZ win",
+          "model": null,
+          "mkt": 0.5028,
+          "dispersion": 0.0082,
+          "mejor_cuota": 1.94,
+          "mejor_casa": "BetOnline",
+          "premio": 0.0402,
+          "n_casas": 31
+        },
+        {
+          "name": "KFF win",
+          "model": null,
+          "mkt": 0.2399,
+          "dispersion": 0.0067,
+          "mejor_cuota": 4.1,
+          "mejor_casa": "tipico_de",
+          "premio": 0.0933,
+          "n_casas": 31
+        }
+      ],
+      "max_premio": 0.0933,
+      "max_disp": 0.0082,
+      "xg": [
+        1.68,
+        1.1
+      ],
+      "scores": [
+        {
+          "s": "1-1",
+          "p": 0.1147350199446943
+        },
+        {
+          "s": "1-0",
+          "p": 0.1041700437624145
+        },
+        {
+          "s": "2-1",
+          "p": 0.09625030038872785
+        },
+        {
+          "s": "2-0",
+          "p": 0.08738742546497437
+        },
+        {
+          "s": "0-1",
+          "p": 0.06838485048120996
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.7654
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.5256
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.3034
+        },
+        {
+          "name": "both teams score",
+          "p": 0.5429
+        },
+        {
+          "name": "FMZ 2+ goles",
+          "p": 0.4998
+        },
+        {
+          "name": "KFF 2+ goles",
+          "p": 0.3015
+        },
+        {
+          "name": "FMZ gana por 2+",
+          "p": 0.2733
+        },
+        {
+          "name": "KFF gana por 2+",
+          "p": 0.0953
+        }
+      ],
+      "ajuste_err": 0.0279,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-02 10:00 UTC",
+      "ts": "2026-09-02T10:00:00Z",
+      "home": {
+        "name": "Cerezo Osaka",
+        "abbr": "COO",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/a7oyde1706245108.png"
+      },
+      "away": {
+        "name": "Kashiwa Reysol",
+        "abbr": "KRR",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/mwnejb1578238986.png"
+      },
+      "outcomes": [
+        {
+          "name": "COO win",
+          "model": null,
+          "mkt": 0.2878,
+          "dispersion": 0.0196,
+          "mejor_cuota": 3.4,
+          "mejor_casa": "tipico_de",
+          "premio": 0.0794,
+          "n_casas": 31
+        },
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2637,
+          "dispersion": 0.005,
+          "mejor_cuota": 3.6,
+          "mejor_casa": "BetOnline",
+          "premio": 0.0435,
+          "n_casas": 31
+        },
+        {
+          "name": "KRR win",
+          "model": null,
+          "mkt": 0.4498,
+          "dispersion": 0.0171,
+          "mejor_cuota": 2.25,
+          "mejor_casa": "betrivers",
+          "premio": 0.0714,
+          "n_casas": 31
+        }
+      ],
+      "max_premio": 0.0794,
+      "max_disp": 0.0196,
+      "xg": [
+        1.21,
+        1.57
+      ],
+      "scores": [
+        {
+          "s": "1-1",
+          "p": 0.11789895297249464
+        },
+        {
+          "s": "0-1",
+          "p": 0.09709948206725864
+        },
+        {
+          "s": "1-2",
+          "p": 0.09236965149338064
+        },
+        {
+          "s": "0-2",
+          "p": 0.07607400314091753
+        },
+        {
+          "s": "1-0",
+          "p": 0.07524204588455448
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.7657
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.526
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.3039
+        },
+        {
+          "name": "both teams score",
+          "p": 0.5563
+        },
+        {
+          "name": "COO 2+ goles",
+          "p": 0.3425
+        },
+        {
+          "name": "KRR 2+ goles",
+          "p": 0.4643
+        },
+        {
+          "name": "COO gana por 2+",
+          "p": 0.122
+        },
+        {
+          "name": "KRR gana por 2+",
+          "p": 0.2313
+        }
+      ],
+      "ajuste_err": 0.0259,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-02 10:00 UTC",
+      "ts": "2026-09-02T10:00:00Z",
+      "home": {
+        "name": "JEF United Chiba",
+        "abbr": "JUC",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/no15iq1590070851.png"
+      },
+      "away": {
+        "name": "Fagiano Okayama",
+        "abbr": "FOO",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/ts5p221590070816.png"
+      },
+      "outcomes": [
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2573,
+          "dispersion": 0.0055,
+          "mejor_cuota": 3.75,
+          "mejor_casa": "BetOnline",
+          "premio": 0.0714,
+          "n_casas": 31
+        },
+        {
+          "name": "FOO win",
+          "model": null,
+          "mkt": 0.5052,
+          "dispersion": 0.0102,
+          "mejor_cuota": 1.93,
+          "mejor_casa": "grosvenor",
+          "premio": 0.0293,
+          "n_casas": 31
+        },
+        {
+          "name": "JUC win",
+          "model": null,
+          "mkt": 0.2388,
+          "dispersion": 0.0072,
+          "mejor_cuota": 4.1,
+          "mejor_casa": "tipico_de",
+          "premio": 0.0933,
+          "n_casas": 31
+        }
+      ],
+      "max_premio": 0.0933,
+      "max_disp": 0.0102,
+      "xg": [
+        1.05,
+        1.63
+      ],
+      "scores": [
+        {
+          "s": "1-1",
+          "p": 0.11738606104545744
+        },
+        {
+          "s": "0-1",
+          "p": 0.11168230940107265
+        },
+        {
+          "s": "1-2",
+          "p": 0.0956097416775227
+        },
+        {
+          "s": "0-2",
+          "p": 0.0909640945158789
+        },
+        {
+          "s": "1-0",
+          "p": 0.07206110531207166
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.7477
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.5015
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.2815
+        },
+        {
+          "name": "both teams score",
+          "p": 0.5229
+        },
+        {
+          "name": "JUC 2+ goles",
+          "p": 0.283
+        },
+        {
+          "name": "FOO 2+ goles",
+          "p": 0.4844
+        },
+        {
+          "name": "JUC gana por 2+",
+          "p": 0.0907
+        },
+        {
+          "name": "FOO gana por 2+",
+          "p": 0.2695
+        }
+      ],
+      "ajuste_err": 0.0188,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-02 10:00 UTC",
+      "ts": "2026-09-02T10:00:00Z",
+      "home": {
+        "name": "Yokohama F Marinos",
+        "abbr": "YFM",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/rgeshm1578240000.png"
+      },
+      "away": {
+        "name": "Kyoto Purple Sanga",
+        "abbr": "KPS",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/5akmlf1590070888.png"
+      },
+      "outcomes": [
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2707,
+          "dispersion": 0.0043,
+          "mejor_cuota": 3.6,
+          "mejor_casa": "BetOnline",
+          "premio": 0.0827,
+          "n_casas": 31
+        },
+        {
+          "name": "KPS win",
+          "model": null,
+          "mkt": 0.2831,
+          "dispersion": 0.01,
+          "mejor_cuota": 3.4,
+          "mejor_casa": "grosvenor",
+          "premio": 0.0478,
+          "n_casas": 31
+        },
+        {
+          "name": "YFM win",
+          "model": null,
+          "mkt": 0.4465,
+          "dispersion": 0.0087,
+          "mejor_cuota": 2.2,
+          "mejor_casa": "coolbet",
+          "premio": 0.0476,
+          "n_casas": 31
+        }
+      ],
+      "max_premio": 0.0827,
+      "max_disp": 0.01,
+      "xg": [
+        1.5,
+        1.16
+      ],
+      "scores": [
+        {
+          "s": "1-1",
+          "p": 0.12160144701856788
+        },
+        {
+          "s": "1-0",
+          "p": 0.10520293912092504
+        },
+        {
+          "s": "2-1",
+          "p": 0.09146556009393428
+        },
+        {
+          "s": "0-1",
+          "p": 0.08083322237257143
+        },
+        {
+          "s": "2-0",
+          "p": 0.07913101353764469
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.744
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.4966
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.2772
+        },
+        {
+          "name": "both teams score",
+          "p": 0.533
+        },
+        {
+          "name": "YFM 2+ goles",
+          "p": 0.4436
+        },
+        {
+          "name": "KPS 2+ goles",
+          "p": 0.3214
+        },
+        {
+          "name": "YFM gana por 2+",
+          "p": 0.2251
+        },
+        {
+          "name": "KPS gana por 2+",
+          "p": 0.117
+        }
+      ],
+      "ajuste_err": 0.0277,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-02 10:00 UTC",
+      "ts": "2026-09-02T10:00:00Z",
+      "home": {
+        "name": "Avispa Fukuoka",
+        "abbr": "AFF",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/g14m751590070801.png"
+      },
+      "away": {
+        "name": "Urawa Red Diamonds",
+        "abbr": "URD",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/ce3lhk1578239741.png"
+      },
+      "outcomes": [
+        {
+          "name": "AFF win",
+          "model": null,
+          "mkt": 0.396,
+          "dispersion": 0.0058,
+          "mejor_cuota": 2.45,
+          "mejor_casa": "coolbet",
+          "premio": 0.0338,
+          "n_casas": 31
+        },
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2896,
+          "dispersion": 0.007,
+          "mejor_cuota": 3.35,
+          "mejor_casa": "BetOnline",
+          "premio": 0.0806,
+          "n_casas": 31
+        },
+        {
+          "name": "URD win",
+          "model": null,
+          "mkt": 0.3137,
+          "dispersion": 0.0042,
+          "mejor_cuota": 3.04,
+          "mejor_casa": "onexbet",
+          "premio": 0.0483,
+          "n_casas": 31
+        }
+      ],
+      "max_premio": 0.0806,
+      "max_disp": 0.007,
+      "xg": [
+        1.27,
+        1.11
+      ],
+      "scores": [
+        {
+          "s": "1-1",
+          "p": 0.13040835087315406
+        },
+        {
+          "s": "1-0",
+          "p": 0.11782592254088282
+        },
+        {
+          "s": "0-1",
+          "p": 0.10239116152508133
+        },
+        {
+          "s": "0-0",
+          "p": 0.09251196710906974
+        },
+        {
+          "s": "2-1",
+          "p": 0.08304592761793143
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.6873
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.4252
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.2172
+        },
+        {
+          "name": "both teams score",
+          "p": 0.4821
+        },
+        {
+          "name": "AFF 2+ goles",
+          "p": 0.3638
+        },
+        {
+          "name": "URD 2+ goles",
+          "p": 0.3035
+        },
+        {
+          "name": "AFF gana por 2+",
+          "p": 0.1793
+        },
+        {
+          "name": "URD gana por 2+",
+          "p": 0.1274
+        }
+      ],
+      "ajuste_err": 0.0249,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-02 10:00 UTC",
+      "ts": "2026-09-02T10:00:00Z",
+      "home": {
+        "name": "Mito HollyHock",
+        "abbr": "MHH",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/i3km591590070924.png"
+      },
+      "away": {
+        "name": "Kashima Antlers",
+        "abbr": "KAA",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/2s8ady1578238881.png"
+      },
+      "outcomes": [
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2654,
+          "dispersion": 0.009,
+          "mejor_cuota": 3.65,
+          "mejor_casa": "BetOnline",
+          "premio": 0.0735,
+          "n_casas": 31
+        },
+        {
+          "name": "KAA win",
+          "model": null,
+          "mkt": 0.519,
+          "dispersion": 0.0134,
+          "mejor_cuota": 1.91,
+          "mejor_casa": "Kindred",
+          "premio": 0.0437,
+          "n_casas": 31
+        },
+        {
+          "name": "MHH win",
+          "model": null,
+          "mkt": 0.2203,
+          "dispersion": 0.0078,
+          "mejor_cuota": 4.4,
+          "mejor_casa": "betmgm",
+          "premio": 0.0864,
+          "n_casas": 31
+        }
+      ],
+      "max_premio": 0.0864,
+      "max_disp": 0.0134,
+      "xg": [
+        0.95,
+        1.58
+      ],
+      "scores": [
+        {
+          "s": "0-1",
+          "p": 0.12554505213875702
+        },
+        {
+          "s": "1-1",
+          "p": 0.11939650728871652
+        },
+        {
+          "s": "0-2",
+          "p": 0.0994348659563619
+        },
+        {
+          "s": "1-2",
+          "p": 0.09456506246689633
+        },
+        {
+          "s": "0-0",
+          "p": 0.07925570153350613
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.7198
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.4652
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.2499
+        },
+        {
+          "name": "both teams score",
+          "p": 0.4878
+        },
+        {
+          "name": "MHH 2+ goles",
+          "p": 0.2462
+        },
+        {
+          "name": "KAA 2+ goles",
+          "p": 0.4699
+        },
+        {
+          "name": "MHH gana por 2+",
+          "p": 0.0783
+        },
+        {
+          "name": "KAA gana por 2+",
+          "p": 0.2744
+        }
+      ],
+      "ajuste_err": 0.023,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-02 10:00 UTC",
+      "ts": "2026-09-02T10:00:00Z",
+      "home": {
+        "name": "Hiroshima Sanfrecce FC",
+        "abbr": "HSF",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/gsgkxj1590068965.png"
+      },
+      "away": {
+        "name": "Nagoya Grampus",
+        "abbr": "NGG",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/a1ucr01706244426.png"
+      },
+      "outcomes": [
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2072,
+          "dispersion": 0.0065,
+          "mejor_cuota": 4.66,
+          "mejor_casa": "onexbet",
+          "premio": 0.0762,
+          "n_casas": 31
+        },
+        {
+          "name": "HSF win",
+          "model": null,
+          "mkt": 0.6429,
+          "dispersion": 0.0097,
+          "mejor_cuota": 1.53,
+          "mejor_casa": "fanatics",
+          "premio": 0.0234,
+          "n_casas": 31
+        },
+        {
+          "name": "NGG win",
+          "model": null,
+          "mkt": 0.1522,
+          "dispersion": 0.0064,
+          "mejor_cuota": 6.2,
+          "mejor_casa": "tipico_de",
+          "premio": 0.1273,
+          "n_casas": 31
+        }
+      ],
+      "max_premio": 0.1273,
+      "max_disp": 0.0097,
+      "xg": [
+        2.17,
+        0.98
+      ],
+      "scores": [
+        {
+          "s": "2-0",
+          "p": 0.10072873492375298
+        },
+        {
+          "s": "2-1",
+          "p": 0.09887623041824402
+        },
+        {
+          "s": "1-0",
+          "p": 0.0928253515200743
+        },
+        {
+          "s": "1-1",
+          "p": 0.09111819832246336
+        },
+        {
+          "s": "3-0",
+          "p": 0.0728700214843461
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.8224
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.6099
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.3867
+        },
+        {
+          "name": "both teams score",
+          "p": 0.5539
+        },
+        {
+          "name": "HSF 2+ goles",
+          "p": 0.6381
+        },
+        {
+          "name": "NGG 2+ goles",
+          "p": 0.2575
+        },
+        {
+          "name": "HSF gana por 2+",
+          "p": 0.411
+        },
+        {
+          "name": "NGG gana por 2+",
+          "p": 0.054
+        }
+      ],
+      "ajuste_err": 0.0449,
+      "n_totales": 2
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-02 10:00 UTC",
+      "ts": "2026-09-02T10:00:00Z",
+      "home": {
+        "name": "Tokyo Verdy",
+        "abbr": "TVV",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/9dqjaw1590071011.png"
+      },
+      "away": {
+        "name": "Vissel Kobe",
+        "abbr": "VKK",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/2axjch1578239819.png"
+      },
+      "outcomes": [
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.3009,
+          "dispersion": 0.0062,
+          "mejor_cuota": 3.2,
+          "mejor_casa": "coolbet",
+          "premio": 0.0492,
+          "n_casas": 31
+        },
+        {
+          "name": "TVV win",
+          "model": null,
+          "mkt": 0.2326,
+          "dispersion": 0.0082,
+          "mejor_cuota": 4.2,
+          "mejor_casa": "tipico_de",
+          "premio": 0.0769,
+          "n_casas": 31
+        },
+        {
+          "name": "VKK win",
+          "model": null,
+          "mkt": 0.4647,
+          "dispersion": 0.0108,
+          "mejor_cuota": 2.1,
+          "mejor_casa": "BetOnline",
+          "premio": 0.05,
+          "n_casas": 31
+        }
+      ],
+      "max_premio": 0.0769,
+      "max_disp": 0.0108,
+      "xg": [
+        0.81,
+        1.26
+      ],
+      "scores": [
+        {
+          "s": "0-1",
+          "p": 0.15910141717304296
+        },
+        {
+          "s": "1-1",
+          "p": 0.1288203363663412
+        },
+        {
+          "s": "0-0",
+          "p": 0.12644122356073648
+        },
+        {
+          "s": "1-0",
+          "p": 0.10237621536677033
+        },
+        {
+          "s": "0-2",
+          "p": 0.10009892436034255
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.6121
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.3417
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.1553
+        },
+        {
+          "name": "both teams score",
+          "p": 0.3973
+        },
+        {
+          "name": "TVV 2+ goles",
+          "p": 0.1947
+        },
+        {
+          "name": "VKK 2+ goles",
+          "p": 0.3583
+        },
+        {
+          "name": "TVV gana por 2+",
+          "p": 0.075
+        },
+        {
+          "name": "VKK gana por 2+",
+          "p": 0.2136
+        }
+      ],
+      "ajuste_err": 0.0191,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-02 10:00 UTC",
+      "ts": "2026-09-02T10:00:00Z",
+      "home": {
+        "name": "V-Varen Nagasaki",
+        "abbr": "VVN",
+        "color": "#4ea87c"
+      },
+      "away": {
+        "name": "Gamba Osaka",
+        "abbr": "GOO",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/tq9edk1638813311.png"
+      },
+      "outcomes": [
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2634,
+          "dispersion": 0.0045,
+          "mejor_cuota": 3.65,
+          "mejor_casa": "BetOnline",
+          "premio": 0.0735,
+          "n_casas": 31
+        },
+        {
+          "name": "GOO win",
+          "model": null,
+          "mkt": 0.4735,
+          "dispersion": 0.0051,
+          "mejor_cuota": 2.08,
+          "mejor_casa": "BetOnline",
+          "premio": 0.0585,
+          "n_casas": 31
+        },
+        {
+          "name": "VVN win",
+          "model": null,
+          "mkt": 0.2672,
+          "dispersion": 0.0064,
+          "mejor_cuota": 3.55,
+          "mejor_casa": "betrivers",
+          "premio": 0.0216,
+          "n_casas": 31
+        }
+      ],
+      "max_premio": 0.0735,
+      "max_disp": 0.0064,
+      "xg": [
+        1.14,
+        1.58
+      ],
+      "scores": [
+        {
+          "s": "1-1",
+          "p": 0.1185996307619225
+        },
+        {
+          "s": "0-1",
+          "p": 0.10442168575273178
+        },
+        {
+          "s": "1-2",
+          "p": 0.09384967639115142
+        },
+        {
+          "s": "0-2",
+          "p": 0.08263045469159037
+        },
+        {
+          "s": "1-0",
+          "p": 0.07493831069933529
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.7547
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.5109
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.29
+        },
+        {
+          "name": "both teams score",
+          "p": 0.5394
+        },
+        {
+          "name": "VVN 2+ goles",
+          "p": 0.314
+        },
+        {
+          "name": "GOO 2+ goles",
+          "p": 0.4694
+        },
+        {
+          "name": "VVN gana por 2+",
+          "p": 0.1075
+        },
+        {
+          "name": "GOO gana por 2+",
+          "p": 0.2459
+        }
+      ],
+      "ajuste_err": 0.0231,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-02 10:00 UTC",
+      "ts": "2026-09-02T10:00:00Z",
+      "home": {
+        "name": "Shimizu S Pulse",
+        "abbr": "SSP",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/u60mus1590068872.png"
+      },
+      "away": {
+        "name": "FC Tokyo",
+        "abbr": "FTT",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/9ls6lr1698754779.png"
+      },
+      "outcomes": [
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2759,
+          "dispersion": 0.0046,
+          "mejor_cuota": 3.5,
+          "mejor_casa": "coolbet",
+          "premio": 0.0769,
+          "n_casas": 31
+        },
+        {
+          "name": "FTT win",
+          "model": null,
+          "mkt": 0.4728,
+          "dispersion": 0.0086,
+          "mejor_cuota": 2.05,
+          "mejor_casa": "betrivers",
+          "premio": 0.025,
+          "n_casas": 31
+        },
+        {
+          "name": "SSP win",
+          "model": null,
+          "mkt": 0.2539,
+          "dispersion": 0.0079,
+          "mejor_cuota": 3.9,
+          "mejor_casa": "tipico_de",
+          "premio": 0.1143,
+          "n_casas": 31
+        }
+      ],
+      "max_premio": 0.1143,
+      "max_disp": 0.0086,
+      "xg": [
+        1.03,
+        1.49
+      ],
+      "scores": [
+        {
+          "s": "1-1",
+          "p": 0.12356672402617319
+        },
+        {
+          "s": "0-1",
+          "p": 0.11992690964544683
+        },
+        {
+          "s": "1-2",
+          "p": 0.09192525332791242
+        },
+        {
+          "s": "0-2",
+          "p": 0.08921747854751137
+        },
+        {
+          "s": "1-0",
+          "p": 0.08304973189518645
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.7164
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.4609
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.2463
+        },
+        {
+          "name": "both teams score",
+          "p": 0.4979
+        },
+        {
+          "name": "SSP 2+ goles",
+          "p": 0.2754
+        },
+        {
+          "name": "FTT 2+ goles",
+          "p": 0.4381
+        },
+        {
+          "name": "SSP gana por 2+",
+          "p": 0.0969
+        },
+        {
+          "name": "FTT gana por 2+",
+          "p": 0.2389
+        }
+      ],
+      "ajuste_err": 0.0277,
+      "n_totales": 1
+    },
     {
       "league": "soccer_france_ligue_one",
       "date": "2026-09-03 18:45 UTC",
@@ -931,8 +2061,8 @@ window.QB_DATA = {
         {
           "name": "empate",
           "model": null,
-          "mkt": 0.3213,
-          "dispersion": 0.0037,
+          "mkt": 0.3218,
+          "dispersion": 0.0046,
           "mejor_cuota": 2.96,
           "mejor_casa": "BetOnline",
           "premio": 0.0278,
@@ -942,7 +2072,7 @@ window.QB_DATA = {
           "name": "EDC win",
           "model": null,
           "mkt": 0.3437,
-          "dispersion": 0.0126,
+          "dispersion": 0.0104,
           "mejor_cuota": 2.86,
           "mejor_casa": "BetOnline",
           "premio": 0.0875,
@@ -952,7 +2082,7 @@ window.QB_DATA = {
           "name": "SDJ win",
           "model": null,
           "mkt": 0.3355,
-          "dispersion": 0.013,
+          "dispersion": 0.0086,
           "mejor_cuota": 2.95,
           "mejor_casa": "draftkings",
           "premio": 0.065,
@@ -960,7 +2090,7 @@ window.QB_DATA = {
         }
       ],
       "max_premio": 0.0875,
-      "max_disp": 0.013,
+      "max_disp": 0.0104,
       "xg": [
         0.98,
         0.96
@@ -968,60 +2098,60 @@ window.QB_DATA = {
       "scores": [
         {
           "s": "0-0",
-          "p": 0.14337140539347915
+          "p": 0.14350167919772083
         },
         {
           "s": "1-0",
-          "p": 0.14033439965895583
+          "p": 0.14039695624971987
         },
         {
           "s": "0-1",
-          "p": 0.13813828612206772
+          "p": 0.1381984295539663
         },
         {
           "s": "1-1",
-          "p": 0.13521213243083088
+          "p": 0.13520844478157412
         },
         {
           "s": "2-0",
-          "p": 0.0686808630828113
+          "p": 0.06867970268496629
         }
       ],
       "bets": [
         {
           "name": "over 1.5 goals",
-          "p": 0.5782
+          "p": 0.5779
         },
         {
           "name": "over 2.5 goals",
-          "p": 0.3077
+          "p": 0.3075
         },
         {
           "name": "over 3.5 goals",
-          "p": 0.1326
+          "p": 0.1325
         },
         {
           "name": "both teams score",
-          "p": 0.3861
+          "p": 0.3858
         },
         {
           "name": "EDC 2+ goles",
-          "p": 0.2564
+          "p": 0.2563
         },
         {
           "name": "SDJ 2+ goles",
-          "p": 0.2508
+          "p": 0.2506
         },
         {
           "name": "EDC gana por 2+",
-          "p": 0.1293
+          "p": 0.1292
         },
         {
           "name": "SDJ gana por 2+",
-          "p": 0.1246
+          "p": 0.1245
         }
       ],
-      "ajuste_err": 0.0145,
+      "ajuste_err": 0.015,
       "n_totales": 1
     },
     {
@@ -1044,8 +2174,8 @@ window.QB_DATA = {
         {
           "name": "AHH win",
           "model": null,
-          "mkt": 0.2035,
-          "dispersion": 0.0436,
+          "mkt": 0.2056,
+          "dispersion": 0.0432,
           "mejor_cuota": 4.85,
           "mejor_casa": "BetOnline",
           "premio": 0.1279,
@@ -1054,8 +2184,8 @@ window.QB_DATA = {
         {
           "name": "BDC win",
           "model": null,
-          "mkt": 0.4819,
-          "dispersion": 0.0454,
+          "mkt": 0.4793,
+          "dispersion": 0.0447,
           "mejor_cuota": 2.0,
           "mejor_casa": "Kindred",
           "premio": 0.0256,
@@ -1064,77 +2194,77 @@ window.QB_DATA = {
         {
           "name": "empate",
           "model": null,
-          "mkt": 0.3175,
+          "mkt": 0.3184,
           "dispersion": 0.0046,
           "mejor_cuota": 3.0,
-          "mejor_casa": "Flutter",
+          "mejor_casa": "fanatics",
           "premio": 0.0345,
           "n_casas": 23
         }
       ],
       "max_premio": 0.1279,
-      "max_disp": 0.0454,
+      "max_disp": 0.0447,
       "xg": [
-        1.19,
+        1.18,
         0.67
       ],
       "scores": [
         {
           "s": "1-0",
-          "p": 0.18560245522143926
+          "p": 0.1849575093306076
         },
         {
           "s": "0-0",
-          "p": 0.15655259725098056
+          "p": 0.15665572846110123
         },
         {
           "s": "1-1",
-          "p": 0.12413157331597773
+          "p": 0.12448424876210423
         },
         {
           "s": "2-0",
-          "p": 0.11002139852397304
+          "p": 0.10918617721112
         },
         {
           "s": "0-1",
-          "p": 0.1047029263717524
+          "p": 0.1054359498153841
         }
       ],
       "bets": [
         {
           "name": "over 1.5 goals",
-          "p": 0.5531
+          "p": 0.553
         },
         {
           "name": "over 2.5 goals",
-          "p": 0.284
+          "p": 0.2838
         },
         {
           "name": "over 3.5 goals",
-          "p": 0.1176
+          "p": 0.1175
         },
         {
           "name": "both teams score",
-          "p": 0.3387
+          "p": 0.3394
         },
         {
           "name": "BDC 2+ goles",
-          "p": 0.3321
+          "p": 0.3304
         },
         {
           "name": "AHH 2+ goles",
-          "p": 0.145
+          "p": 0.1465
         },
         {
           "name": "BDC gana por 2+",
-          "p": 0.2143
+          "p": 0.2124
         },
         {
           "name": "AHH gana por 2+",
-          "p": 0.0565
+          "p": 0.0573
         }
       ],
-      "ajuste_err": 0.0187,
+      "ajuste_err": 0.019,
       "n_totales": 1
     },
     {
@@ -1157,8 +2287,8 @@ window.QB_DATA = {
         {
           "name": "DRR win",
           "model": null,
-          "mkt": 0.2496,
-          "dispersion": 0.008,
+          "mkt": 0.2481,
+          "dispersion": 0.0079,
           "mejor_cuota": 3.8,
           "mejor_casa": "Kindred",
           "premio": 0.0556,
@@ -1168,7 +2298,7 @@ window.QB_DATA = {
           "name": "empate",
           "model": null,
           "mkt": 0.3396,
-          "dispersion": 0.0082,
+          "dispersion": 0.0091,
           "mejor_cuota": 2.82,
           "mejor_casa": "Betsson",
           "premio": 0.0255,
@@ -1178,7 +2308,7 @@ window.QB_DATA = {
           "name": "PLA win",
           "model": null,
           "mkt": 0.4114,
-          "dispersion": 0.0088,
+          "dispersion": 0.0078,
           "mejor_cuota": 2.38,
           "mejor_casa": "onexbet",
           "premio": 0.0578,
@@ -1186,7 +2316,7 @@ window.QB_DATA = {
         }
       ],
       "max_premio": 0.0578,
-      "max_disp": 0.0088,
+      "max_disp": 0.0091,
       "xg": [
         1.03,
         0.74
@@ -1194,60 +2324,173 @@ window.QB_DATA = {
       "scores": [
         {
           "s": "1-0",
-          "p": 0.17581443251986995
+          "p": 0.17616949596967574
         },
         {
           "s": "0-0",
-          "p": 0.17090184030547959
+          "p": 0.17117091067346543
         },
         {
           "s": "1-1",
-          "p": 0.1297371285443546
+          "p": 0.1296414475677582
         },
         {
           "s": "0-1",
-          "p": 0.12611202451580833
+          "p": 0.12596303644428447
         },
         {
           "s": "2-0",
-          "p": 0.09043411886914836
+          "p": 0.09065702574140913
         }
       ],
       "bets": [
         {
           "name": "over 1.5 goals",
-          "p": 0.5272
+          "p": 0.5267
         },
         {
           "name": "over 2.5 goals",
-          "p": 0.2605
+          "p": 0.2601
         },
         {
           "name": "over 3.5 goals",
-          "p": 0.1034
+          "p": 0.1032
         },
         {
           "name": "both teams score",
-          "p": 0.3353
+          "p": 0.3348
         },
         {
           "name": "PLA 2+ goles",
-          "p": 0.2748
+          "p": 0.275
         },
         {
           "name": "DRR 2+ goles",
-          "p": 0.1691
+          "p": 0.1684
         },
         {
           "name": "PLA gana por 2+",
-          "p": 0.1645
+          "p": 0.1648
         },
         {
           "name": "DRR gana por 2+",
-          "p": 0.0761
+          "p": 0.0757
         }
       ],
-      "ajuste_err": 0.0249,
+      "ajuste_err": 0.0257,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-05 10:00 UTC",
+      "ts": "2026-09-05T10:00:00Z",
+      "home": {
+        "name": "Avispa Fukuoka",
+        "abbr": "AFF",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/g14m751590070801.png"
+      },
+      "away": {
+        "name": "Mito HollyHock",
+        "abbr": "MHH",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/i3km591590070924.png"
+      },
+      "outcomes": [
+        {
+          "name": "AFF win",
+          "model": null,
+          "mkt": 0.4106,
+          "dispersion": 0.001,
+          "mejor_cuota": 2.28,
+          "mejor_casa": "betrivers",
+          "premio": 0.0133,
+          "n_casas": 7
+        },
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.3073,
+          "dispersion": 0.0018,
+          "mejor_cuota": 3.0,
+          "mejor_casa": "betrivers",
+          "premio": 0.0,
+          "n_casas": 7
+        },
+        {
+          "name": "MHH win",
+          "model": null,
+          "mkt": 0.2822,
+          "dispersion": 0.0008,
+          "mejor_cuota": 3.25,
+          "mejor_casa": "betrivers",
+          "premio": 0.0156,
+          "n_casas": 7
+        }
+      ],
+      "max_premio": 0.0156,
+      "max_disp": 0.0018,
+      "xg": [
+        1.19,
+        0.94
+      ],
+      "scores": [
+        {
+          "s": "1-0",
+          "p": 0.1418352503642516
+        },
+        {
+          "s": "1-1",
+          "p": 0.1329945210233367
+        },
+        {
+          "s": "0-0",
+          "p": 0.11958717287374969
+        },
+        {
+          "s": "0-1",
+          "p": 0.11213318787843368
+        },
+        {
+          "s": "2-0",
+          "p": 0.08411118752313032
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.6264
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.3568
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.1659
+        },
+        {
+          "name": "both teams score",
+          "p": 0.4226
+        },
+        {
+          "name": "AFF 2+ goles",
+          "p": 0.3323
+        },
+        {
+          "name": "MHH 2+ goles",
+          "p": 0.2413
+        },
+        {
+          "name": "AFF gana por 2+",
+          "p": 0.1793
+        },
+        {
+          "name": "MHH gana por 2+",
+          "p": 0.1023
+        }
+      ],
+      "ajuste_err": 0.0256,
       "n_totales": 1
     },
     {
@@ -2883,6 +4126,119 @@ window.QB_DATA = {
       "n_totales": 1
     },
     {
+      "league": "soccer_argentina_primera_division",
+      "date": "2026-09-05 16:30 UTC",
+      "ts": "2026-09-05T16:30:00Z",
+      "home": {
+        "name": "Aldosivi Mar del Plata",
+        "abbr": "AMP",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/nqrjqb1517767667.png"
+      },
+      "away": {
+        "name": "Banfield",
+        "abbr": "BAN",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/c2ea011775756104.png"
+      },
+      "outcomes": [
+        {
+          "name": "AMP win",
+          "model": null,
+          "mkt": 0.3684,
+          "dispersion": 0.013,
+          "mejor_cuota": 2.6,
+          "mejor_casa": "fanatics",
+          "premio": 0.04,
+          "n_casas": 21
+        },
+        {
+          "name": "BAN win",
+          "model": null,
+          "mkt": 0.3122,
+          "dispersion": 0.0105,
+          "mejor_cuota": 3.25,
+          "mejor_casa": "Betsson",
+          "premio": 0.1207,
+          "n_casas": 21
+        },
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.3196,
+          "dispersion": 0.0078,
+          "mejor_cuota": 3.0,
+          "mejor_casa": "betfred_uk",
+          "premio": 0.0345,
+          "n_casas": 21
+        }
+      ],
+      "max_premio": 0.1207,
+      "max_disp": 0.013,
+      "xg": [
+        1.07,
+        0.96
+      ],
+      "scores": [
+        {
+          "s": "1-0",
+          "p": 0.14042589501365624
+        },
+        {
+          "s": "1-1",
+          "p": 0.13493798248883374
+        },
+        {
+          "s": "0-0",
+          "p": 0.13159474943281804
+        },
+        {
+          "s": "0-1",
+          "p": 0.12645196238814221
+        },
+        {
+          "s": "2-0",
+          "p": 0.0749248434127442
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.6015
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.3309
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.148
+        },
+        {
+          "name": "both teams score",
+          "p": 0.4051
+        },
+        {
+          "name": "AMP 2+ goles",
+          "p": 0.2889
+        },
+        {
+          "name": "BAN 2+ goles",
+          "p": 0.2499
+        },
+        {
+          "name": "AMP gana por 2+",
+          "p": 0.1491
+        },
+        {
+          "name": "BAN gana por 2+",
+          "p": 0.1163
+        }
+      ],
+      "ajuste_err": 0.0286,
+      "n_totales": 1
+    },
+    {
       "league": "soccer_epl",
       "date": "2026-09-05 16:30 UTC",
       "ts": "2026-09-05T16:30:00Z",
@@ -3157,119 +4513,6 @@ window.QB_DATA = {
       ],
       "max_premio": 0.3846,
       "max_disp": 0.0089
-    },
-    {
-      "league": "soccer_argentina_primera_division",
-      "date": "2026-09-05 16:30 UTC",
-      "ts": "2026-09-05T16:30:00Z",
-      "home": {
-        "name": "Aldosivi Mar del Plata",
-        "abbr": "AMP",
-        "color": "#4ea87c",
-        "crest": "https://r2.thesportsdb.com/images/media/team/badge/nqrjqb1517767667.png"
-      },
-      "away": {
-        "name": "Banfield",
-        "abbr": "BAN",
-        "color": "#4ea87c",
-        "crest": "https://r2.thesportsdb.com/images/media/team/badge/c2ea011775756104.png"
-      },
-      "outcomes": [
-        {
-          "name": "AMP win",
-          "model": null,
-          "mkt": 0.3684,
-          "dispersion": 0.013,
-          "mejor_cuota": 2.6,
-          "mejor_casa": "fanatics",
-          "premio": 0.04,
-          "n_casas": 21
-        },
-        {
-          "name": "BAN win",
-          "model": null,
-          "mkt": 0.3122,
-          "dispersion": 0.0105,
-          "mejor_cuota": 3.25,
-          "mejor_casa": "Betsson",
-          "premio": 0.1207,
-          "n_casas": 21
-        },
-        {
-          "name": "empate",
-          "model": null,
-          "mkt": 0.3196,
-          "dispersion": 0.0078,
-          "mejor_cuota": 3.0,
-          "mejor_casa": "betfred_uk",
-          "premio": 0.0345,
-          "n_casas": 21
-        }
-      ],
-      "max_premio": 0.1207,
-      "max_disp": 0.013,
-      "xg": [
-        1.07,
-        0.96
-      ],
-      "scores": [
-        {
-          "s": "1-0",
-          "p": 0.14042589501365624
-        },
-        {
-          "s": "1-1",
-          "p": 0.13493798248883374
-        },
-        {
-          "s": "0-0",
-          "p": 0.13159474943281804
-        },
-        {
-          "s": "0-1",
-          "p": 0.12645196238814221
-        },
-        {
-          "s": "2-0",
-          "p": 0.0749248434127442
-        }
-      ],
-      "bets": [
-        {
-          "name": "over 1.5 goals",
-          "p": 0.6015
-        },
-        {
-          "name": "over 2.5 goals",
-          "p": 0.3309
-        },
-        {
-          "name": "over 3.5 goals",
-          "p": 0.148
-        },
-        {
-          "name": "both teams score",
-          "p": 0.4051
-        },
-        {
-          "name": "AMP 2+ goles",
-          "p": 0.2889
-        },
-        {
-          "name": "BAN 2+ goles",
-          "p": 0.2499
-        },
-        {
-          "name": "AMP gana por 2+",
-          "p": 0.1491
-        },
-        {
-          "name": "BAN gana por 2+",
-          "p": 0.1163
-        }
-      ],
-      "ajuste_err": 0.0286,
-      "n_totales": 1
     },
     {
       "league": "soccer_argentina_primera_division",
@@ -3856,8 +5099,8 @@ window.QB_DATA = {
         {
           "name": "BJJ win",
           "model": null,
-          "mkt": 0.4556,
-          "dispersion": 0.037,
+          "mkt": 0.4539,
+          "dispersion": 0.0507,
           "mejor_cuota": 2.19,
           "mejor_casa": "BetOnline",
           "premio": 0.095,
@@ -3867,17 +5110,17 @@ window.QB_DATA = {
           "name": "empate",
           "model": null,
           "mkt": 0.3007,
-          "dispersion": 0.0076,
+          "dispersion": 0.0199,
           "mejor_cuota": 3.2,
           "mejor_casa": "Betsson",
-          "premio": 0.0492,
+          "premio": 0.0509,
           "n_casas": 22
         },
         {
           "name": "GMM win",
           "model": null,
-          "mkt": 0.2427,
-          "dispersion": 0.0336,
+          "mkt": 0.2405,
+          "dispersion": 0.0371,
           "mejor_cuota": 4.2,
           "mejor_casa": "Kindred",
           "premio": 0.12,
@@ -3885,68 +5128,68 @@ window.QB_DATA = {
         }
       ],
       "max_premio": 0.12,
-      "max_disp": 0.037,
+      "max_disp": 0.0507,
       "xg": [
-        0.87,
+        0.86,
         1.28
       ],
       "scores": [
         {
           "s": "0-1",
-          "p": 0.14947200518502304
+          "p": 0.14990042313265334
         },
         {
           "s": "1-1",
-          "p": 0.12958951207408387
+          "p": 0.12960454232791147
         },
         {
           "s": "0-0",
-          "p": 0.11655742827145371
+          "p": 0.1170930311749913
         },
         {
           "s": "1-0",
-          "p": 0.10105317206128701
+          "p": 0.10123913193889325
         },
         {
           "s": "0-2",
-          "p": 0.09584065411086005
+          "p": 0.09594993241642069
         }
       ],
       "bets": [
         {
           "name": "over 1.5 goals",
-          "p": 0.6329
+          "p": 0.6318
         },
         {
           "name": "over 2.5 goals",
-          "p": 0.3637
+          "p": 0.3624
         },
         {
           "name": "over 3.5 goals",
-          "p": 0.1708
+          "p": 0.1699
         },
         {
           "name": "both teams score",
-          "p": 0.419
+          "p": 0.4179
         },
         {
           "name": "GMM 2+ goles",
-          "p": 0.2155
+          "p": 0.2146
         },
         {
           "name": "BJJ 2+ goles",
-          "p": 0.3669
+          "p": 0.3661
         },
         {
           "name": "GMM gana por 2+",
-          "p": 0.0831
+          "p": 0.0829
         },
         {
           "name": "BJJ gana por 2+",
-          "p": 0.2118
+          "p": 0.2116
         }
       ],
-      "ajuste_err": 0.0278,
+      "ajuste_err": 0.0299,
       "n_totales": 1
     },
     {
@@ -4171,6 +5414,1022 @@ window.QB_DATA = {
         }
       ],
       "ajuste_err": 0.0254,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-06 09:00 UTC",
+      "ts": "2026-09-06T09:00:00Z",
+      "home": {
+        "name": "Nagoya Grampus",
+        "abbr": "NGG",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/a1ucr01706244426.png"
+      },
+      "away": {
+        "name": "FC Machida Zelvia",
+        "abbr": "FMZ",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/99zl6k1590070905.png"
+      },
+      "outcomes": [
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2801,
+          "dispersion": 0.0007,
+          "mejor_cuota": 3.25,
+          "mejor_casa": "Kindred",
+          "premio": 0.0,
+          "n_casas": 7
+        },
+        {
+          "name": "FMZ win",
+          "model": null,
+          "mkt": 0.4538,
+          "dispersion": 0.0002,
+          "mejor_cuota": 2.07,
+          "mejor_casa": "betrivers",
+          "premio": 0.0049,
+          "n_casas": 7
+        },
+        {
+          "name": "NGG win",
+          "model": null,
+          "mkt": 0.2665,
+          "dispersion": 0.0008,
+          "mejor_cuota": 3.45,
+          "mejor_casa": "betrivers",
+          "premio": 0.0147,
+          "n_casas": 7
+        }
+      ],
+      "max_premio": 0.0147,
+      "max_disp": 0.0008,
+      "xg": [
+        1.03,
+        1.42
+      ],
+      "scores": [
+        {
+          "s": "1-1",
+          "p": 0.1263707852112902
+        },
+        {
+          "s": "0-1",
+          "p": 0.12275036187892907
+        },
+        {
+          "s": "1-2",
+          "p": 0.08945854789827051
+        },
+        {
+          "s": "1-0",
+          "p": 0.08925684425974667
+        },
+        {
+          "s": "0-2",
+          "p": 0.0868956310536175
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.7013
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.4421
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.2308
+        },
+        {
+          "name": "both teams score",
+          "p": 0.4868
+        },
+        {
+          "name": "NGG 2+ goles",
+          "p": 0.2751
+        },
+        {
+          "name": "FMZ 2+ goles",
+          "p": 0.4136
+        },
+        {
+          "name": "NGG gana por 2+",
+          "p": 0.1018
+        },
+        {
+          "name": "FMZ gana por 2+",
+          "p": 0.2219
+        }
+      ],
+      "ajuste_err": 0.0241,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-06 09:00 UTC",
+      "ts": "2026-09-06T09:00:00Z",
+      "home": {
+        "name": "Fagiano Okayama",
+        "abbr": "FOO",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/ts5p221590070816.png"
+      },
+      "away": {
+        "name": "Hiroshima Sanfrecce FC",
+        "abbr": "HSF",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/gsgkxj1590068965.png"
+      },
+      "outcomes": [
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2576,
+          "dispersion": 0.0007,
+          "mejor_cuota": 3.5,
+          "mejor_casa": "Kindred",
+          "premio": 0.0,
+          "n_casas": 7
+        },
+        {
+          "name": "FOO win",
+          "model": null,
+          "mkt": 0.2355,
+          "dispersion": 0.0007,
+          "mejor_cuota": 3.8,
+          "mejor_casa": "Kindred",
+          "premio": 0.0,
+          "n_casas": 7
+        },
+        {
+          "name": "HSF win",
+          "model": null,
+          "mkt": 0.5069,
+          "dispersion": 0.0014,
+          "mejor_cuota": 1.87,
+          "mejor_casa": "betrivers",
+          "premio": 0.0108,
+          "n_casas": 7
+        }
+      ],
+      "max_premio": 0.0108,
+      "max_disp": 0.0014,
+      "xg": [
+        1.05,
+        1.64
+      ],
+      "scores": [
+        {
+          "s": "1-1",
+          "p": 0.11672361363853813
+        },
+        {
+          "s": "0-1",
+          "p": 0.11076777874498873
+        },
+        {
+          "s": "1-2",
+          "p": 0.09589956243631352
+        },
+        {
+          "s": "0-2",
+          "p": 0.091006276986781
+        },
+        {
+          "s": "1-0",
+          "p": 0.07103474528304876
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.7508
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.5056
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.2852
+        },
+        {
+          "name": "both teams score",
+          "p": 0.5254
+        },
+        {
+          "name": "FOO 2+ goles",
+          "p": 0.284
+        },
+        {
+          "name": "HSF 2+ goles",
+          "p": 0.4889
+        },
+        {
+          "name": "FOO gana por 2+",
+          "p": 0.0902
+        },
+        {
+          "name": "HSF gana por 2+",
+          "p": 0.2725
+        }
+      ],
+      "ajuste_err": 0.0227,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-06 09:00 UTC",
+      "ts": "2026-09-06T09:00:00Z",
+      "home": {
+        "name": "JEF United Chiba",
+        "abbr": "JUC",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/no15iq1590070851.png"
+      },
+      "away": {
+        "name": "Gamba Osaka",
+        "abbr": "GOO",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/tq9edk1638813311.png"
+      },
+      "outcomes": [
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2648,
+          "dispersion": 0.0019,
+          "mejor_cuota": 3.45,
+          "mejor_casa": "betrivers",
+          "premio": 0.0147,
+          "n_casas": 7
+        },
+        {
+          "name": "GOO win",
+          "model": null,
+          "mkt": 0.4175,
+          "dispersion": 0.0011,
+          "mejor_cuota": 2.25,
+          "mejor_casa": "betrivers",
+          "premio": 0.009,
+          "n_casas": 7
+        },
+        {
+          "name": "JUC win",
+          "model": null,
+          "mkt": 0.318,
+          "dispersion": 0.0012,
+          "mejor_cuota": 2.9,
+          "mejor_casa": "betrivers",
+          "premio": 0.0,
+          "n_casas": 7
+        }
+      ],
+      "max_premio": 0.0147,
+      "max_disp": 0.0019,
+      "xg": [
+        1.28,
+        1.49
+      ],
+      "scores": [
+        {
+          "s": "1-1",
+          "p": 0.11948192263624431
+        },
+        {
+          "s": "0-1",
+          "p": 0.09358065349670408
+        },
+        {
+          "s": "1-2",
+          "p": 0.08918221041520892
+        },
+        {
+          "s": "1-0",
+          "p": 0.08003799059469652
+        },
+        {
+          "s": "2-1",
+          "p": 0.07627607471963355
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.7637
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.5233
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.3013
+        },
+        {
+          "name": "both teams score",
+          "p": 0.559
+        },
+        {
+          "name": "JUC 2+ goles",
+          "p": 0.3649
+        },
+        {
+          "name": "GOO 2+ goles",
+          "p": 0.4398
+        },
+        {
+          "name": "JUC gana por 2+",
+          "p": 0.1397
+        },
+        {
+          "name": "GOO gana por 2+",
+          "p": 0.2067
+        }
+      ],
+      "ajuste_err": 0.0223,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-06 09:00 UTC",
+      "ts": "2026-09-06T09:00:00Z",
+      "home": {
+        "name": "Kashima Antlers",
+        "abbr": "KAA",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/2s8ady1578238881.png"
+      },
+      "away": {
+        "name": "Urawa Red Diamonds",
+        "abbr": "URD",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/ce3lhk1578239741.png"
+      },
+      "outcomes": [
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2728,
+          "dispersion": 0.0011,
+          "mejor_cuota": 3.35,
+          "mejor_casa": "betrivers",
+          "premio": 0.0152,
+          "n_casas": 7
+        },
+        {
+          "name": "KAA win",
+          "model": null,
+          "mkt": 0.4989,
+          "dispersion": 0.0022,
+          "mejor_cuota": 1.89,
+          "mejor_casa": "betrivers",
+          "premio": 0.0053,
+          "n_casas": 7
+        },
+        {
+          "name": "URD win",
+          "model": null,
+          "mkt": 0.2284,
+          "dispersion": 0.0011,
+          "mejor_cuota": 3.95,
+          "mejor_casa": "betrivers",
+          "premio": 0.0128,
+          "n_casas": 7
+        }
+      ],
+      "max_premio": 0.0152,
+      "max_disp": 0.0022,
+      "xg": [
+        1.52,
+        0.95
+      ],
+      "scores": [
+        {
+          "s": "1-0",
+          "p": 0.1280665955721342
+        },
+        {
+          "s": "1-1",
+          "p": 0.12223813688229596
+        },
+        {
+          "s": "2-0",
+          "p": 0.09722312822374574
+        },
+        {
+          "s": "2-1",
+          "p": 0.09279839135916831
+        },
+        {
+          "s": "0-0",
+          "p": 0.08434748604103645
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.7071
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.4492
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.2366
+        },
+        {
+          "name": "both teams score",
+          "p": 0.4803
+        },
+        {
+          "name": "KAA 2+ goles",
+          "p": 0.4483
+        },
+        {
+          "name": "URD 2+ goles",
+          "p": 0.2475
+        },
+        {
+          "name": "KAA gana por 2+",
+          "p": 0.2576
+        },
+        {
+          "name": "URD gana por 2+",
+          "p": 0.0827
+        }
+      ],
+      "ajuste_err": 0.0268,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-06 10:00 UTC",
+      "ts": "2026-09-06T10:00:00Z",
+      "home": {
+        "name": "Cerezo Osaka",
+        "abbr": "COO",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/a7oyde1706245108.png"
+      },
+      "away": {
+        "name": "Tokyo Verdy",
+        "abbr": "TVV",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/9dqjaw1590071011.png"
+      },
+      "outcomes": [
+        {
+          "name": "COO win",
+          "model": null,
+          "mkt": 0.5164,
+          "dispersion": 0.0008,
+          "mejor_cuota": 1.83,
+          "mejor_casa": "betrivers",
+          "premio": 0.0055,
+          "n_casas": 7
+        },
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2644,
+          "dispersion": 0.0019,
+          "mejor_cuota": 3.45,
+          "mejor_casa": "betrivers",
+          "premio": 0.0147,
+          "n_casas": 7
+        },
+        {
+          "name": "TVV win",
+          "model": null,
+          "mkt": 0.2195,
+          "dispersion": 0.0012,
+          "mejor_cuota": 4.1,
+          "mejor_casa": "grosvenor",
+          "premio": 0.0,
+          "n_casas": 7
+        }
+      ],
+      "max_premio": 0.0147,
+      "max_disp": 0.0019,
+      "xg": [
+        1.61,
+        0.97
+      ],
+      "scores": [
+        {
+          "s": "1-0",
+          "p": 0.12177211825421093
+        },
+        {
+          "s": "1-1",
+          "p": 0.11855012935876384
+        },
+        {
+          "s": "2-0",
+          "p": 0.09775228803850769
+        },
+        {
+          "s": "2-1",
+          "p": 0.09516584385834558
+        },
+        {
+          "s": "0-0",
+          "p": 0.07584706752989834
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.7285
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.4763
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.2594
+        },
+        {
+          "name": "both teams score",
+          "p": 0.4973
+        },
+        {
+          "name": "COO 2+ goles",
+          "p": 0.4768
+        },
+        {
+          "name": "TVV 2+ goles",
+          "p": 0.2545
+        },
+        {
+          "name": "COO gana por 2+",
+          "p": 0.276
+        },
+        {
+          "name": "TVV gana por 2+",
+          "p": 0.0804
+        }
+      ],
+      "ajuste_err": 0.0278,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-06 10:00 UTC",
+      "ts": "2026-09-06T10:00:00Z",
+      "home": {
+        "name": "Vissel Kobe",
+        "abbr": "VKK",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/2axjch1578239819.png"
+      },
+      "away": {
+        "name": "V-Varen Nagasaki",
+        "abbr": "VVN",
+        "color": "#4ea87c"
+      },
+      "outcomes": [
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2486,
+          "dispersion": 0.0026,
+          "mejor_cuota": 3.65,
+          "mejor_casa": "betrivers",
+          "premio": 0.0139,
+          "n_casas": 7
+        },
+        {
+          "name": "VVN win",
+          "model": null,
+          "mkt": 0.1574,
+          "dispersion": 0.001,
+          "mejor_cuota": 5.5,
+          "mejor_casa": "betrivers",
+          "premio": 0.0,
+          "n_casas": 7
+        },
+        {
+          "name": "VKK win",
+          "model": null,
+          "mkt": 0.5929,
+          "dispersion": 0.0034,
+          "mejor_cuota": 1.6,
+          "mejor_casa": "betrivers",
+          "premio": 0.0,
+          "n_casas": 7
+        }
+      ],
+      "max_premio": 0.0139,
+      "max_disp": 0.0034,
+      "xg": [
+        1.7,
+        0.77
+      ],
+      "scores": [
+        {
+          "s": "1-0",
+          "p": 0.14470493717256935
+        },
+        {
+          "s": "2-0",
+          "p": 0.12268608431976794
+        },
+        {
+          "s": "1-1",
+          "p": 0.11076663458085288
+        },
+        {
+          "s": "2-1",
+          "p": 0.09391196275353836
+        },
+        {
+          "s": "0-0",
+          "p": 0.08533779098997352
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.7046
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.4462
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.2341
+        },
+        {
+          "name": "both teams score",
+          "p": 0.4367
+        },
+        {
+          "name": "VKK 2+ goles",
+          "p": 0.5054
+        },
+        {
+          "name": "VVN 2+ goles",
+          "p": 0.1789
+        },
+        {
+          "name": "VKK gana por 2+",
+          "p": 0.3348
+        },
+        {
+          "name": "VVN gana por 2+",
+          "p": 0.0483
+        }
+      ],
+      "ajuste_err": 0.0219,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-06 10:00 UTC",
+      "ts": "2026-09-06T10:00:00Z",
+      "home": {
+        "name": "Kawasaki Frontale",
+        "abbr": "KFF",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/c6pot51578239112.png"
+      },
+      "away": {
+        "name": "Shimizu S Pulse",
+        "abbr": "SSP",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/u60mus1590068872.png"
+      },
+      "outcomes": [
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2634,
+          "dispersion": 0.0011,
+          "mejor_cuota": 3.45,
+          "mejor_casa": "grosvenor",
+          "premio": 0.0,
+          "n_casas": 7
+        },
+        {
+          "name": "KFF win",
+          "model": null,
+          "mkt": 0.4629,
+          "dispersion": 0.0011,
+          "mejor_cuota": 2.04,
+          "mejor_casa": "betrivers",
+          "premio": 0.0099,
+          "n_casas": 7
+        },
+        {
+          "name": "SSP win",
+          "model": null,
+          "mkt": 0.2735,
+          "dispersion": 0.0014,
+          "mejor_cuota": 3.35,
+          "mejor_casa": "betrivers",
+          "premio": 0.0152,
+          "n_casas": 7
+        }
+      ],
+      "max_premio": 0.0152,
+      "max_disp": 0.0014,
+      "xg": [
+        1.58,
+        1.17
+      ],
+      "scores": [
+        {
+          "s": "1-1",
+          "p": 0.11809280070971036
+        },
+        {
+          "s": "1-0",
+          "p": 0.10087961675976226
+        },
+        {
+          "s": "2-1",
+          "p": 0.09339315569690188
+        },
+        {
+          "s": "2-0",
+          "p": 0.07978018726008226
+        },
+        {
+          "s": "0-1",
+          "p": 0.07466237475004818
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.7607
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.5191
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.2975
+        },
+        {
+          "name": "both teams score",
+          "p": 0.548
+        },
+        {
+          "name": "KFF 2+ goles",
+          "p": 0.4691
+        },
+        {
+          "name": "SSP 2+ goles",
+          "p": 0.3267
+        },
+        {
+          "name": "KFF gana por 2+",
+          "p": 0.2407
+        },
+        {
+          "name": "SSP gana por 2+",
+          "p": 0.1134
+        }
+      ],
+      "ajuste_err": 0.0266,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-06 10:00 UTC",
+      "ts": "2026-09-06T10:00:00Z",
+      "home": {
+        "name": "Kashiwa Reysol",
+        "abbr": "KRR",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/mwnejb1578238986.png"
+      },
+      "away": {
+        "name": "Yokohama F Marinos",
+        "abbr": "YFM",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/rgeshm1578240000.png"
+      },
+      "outcomes": [
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2409,
+          "dispersion": 0.001,
+          "mejor_cuota": 3.75,
+          "mejor_casa": "Kindred",
+          "premio": 0.0,
+          "n_casas": 7
+        },
+        {
+          "name": "KRR win",
+          "model": null,
+          "mkt": 0.5461,
+          "dispersion": 0.0009,
+          "mejor_cuota": 1.74,
+          "mejor_casa": "betrivers",
+          "premio": 0.0058,
+          "n_casas": 7
+        },
+        {
+          "name": "YFM win",
+          "model": null,
+          "mkt": 0.2139,
+          "dispersion": 0.0005,
+          "mejor_cuota": 4.2,
+          "mejor_casa": "Kindred",
+          "premio": 0.0,
+          "n_casas": 7
+        }
+      ],
+      "max_premio": 0.0058,
+      "max_disp": 0.001,
+      "xg": [
+        1.79,
+        1.04
+      ],
+      "scores": [
+        {
+          "s": "1-1",
+          "p": 0.10993717868349001
+        },
+        {
+          "s": "1-0",
+          "p": 0.10547280354052092
+        },
+        {
+          "s": "2-1",
+          "p": 0.09829288717757186
+        },
+        {
+          "s": "2-0",
+          "p": 0.09430136831651785
+        },
+        {
+          "s": "0-1",
+          "p": 0.06148045705001631
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.7741
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.5378
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.3149
+        },
+        {
+          "name": "both teams score",
+          "p": 0.5391
+        },
+        {
+          "name": "KRR 2+ goles",
+          "p": 0.5336
+        },
+        {
+          "name": "YFM 2+ goles",
+          "p": 0.2798
+        },
+        {
+          "name": "KRR gana por 2+",
+          "p": 0.309
+        },
+        {
+          "name": "YFM gana por 2+",
+          "p": 0.0797
+        }
+      ],
+      "ajuste_err": 0.0159,
+      "n_totales": 1
+    },
+    {
+      "league": "soccer_japan_j_league",
+      "date": "2026-09-06 10:30 UTC",
+      "ts": "2026-09-06T10:30:00Z",
+      "home": {
+        "name": "FC Tokyo",
+        "abbr": "FTT",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/9ls6lr1698754779.png"
+      },
+      "away": {
+        "name": "Kyoto Purple Sanga",
+        "abbr": "KPS",
+        "color": "#4ea87c",
+        "crest": "https://r2.thesportsdb.com/images/media/team/badge/5akmlf1590070888.png"
+      },
+      "outcomes": [
+        {
+          "name": "empate",
+          "model": null,
+          "mkt": 0.2511,
+          "dispersion": 0.0005,
+          "mejor_cuota": 3.6,
+          "mejor_casa": "betrivers",
+          "premio": 0.0,
+          "n_casas": 7
+        },
+        {
+          "name": "FTT win",
+          "model": null,
+          "mkt": 0.542,
+          "dispersion": 0.0013,
+          "mejor_cuota": 1.75,
+          "mejor_casa": "betrivers",
+          "premio": 0.0057,
+          "n_casas": 7
+        },
+        {
+          "name": "KPS win",
+          "model": null,
+          "mkt": 0.2069,
+          "dispersion": 0.0009,
+          "mejor_cuota": 4.3,
+          "mejor_casa": "betrivers",
+          "premio": 0.0,
+          "n_casas": 7
+        }
+      ],
+      "max_premio": 0.0057,
+      "max_disp": 0.0013,
+      "xg": [
+        1.68,
+        0.95
+      ],
+      "scores": [
+        {
+          "s": "1-0",
+          "p": 0.12153830661540696
+        },
+        {
+          "s": "1-1",
+          "p": 0.11523913744710275
+        },
+        {
+          "s": "2-0",
+          "p": 0.1018136043572186
+        },
+        {
+          "s": "2-1",
+          "p": 0.0965367403351588
+        },
+        {
+          "s": "0-0",
+          "p": 0.07254217188458356
+        }
+      ],
+      "bets": [
+        {
+          "name": "over 1.5 goals",
+          "p": 0.7371
+        },
+        {
+          "name": "over 2.5 goals",
+          "p": 0.4875
+        },
+        {
+          "name": "over 3.5 goals",
+          "p": 0.2691
+        },
+        {
+          "name": "both teams score",
+          "p": 0.4979
+        },
+        {
+          "name": "FTT 2+ goles",
+          "p": 0.4991
+        },
+        {
+          "name": "KPS 2+ goles",
+          "p": 0.2452
+        },
+        {
+          "name": "FTT gana por 2+",
+          "p": 0.2974
+        },
+        {
+          "name": "KPS gana por 2+",
+          "p": 0.0728
+        }
+      ],
+      "ajuste_err": 0.0163,
       "n_totales": 1
     },
     {
@@ -5487,7 +7746,7 @@ window.QB_DATA = {
           "name": "empate",
           "model": null,
           "mkt": 0.2677,
-          "dispersion": 0.0355,
+          "dispersion": 0.0108,
           "mejor_cuota": 3.58,
           "mejor_casa": "BetOnline",
           "premio": 0.0529,
@@ -5496,8 +7755,8 @@ window.QB_DATA = {
         {
           "name": "NOB win",
           "model": null,
-          "mkt": 0.1526,
-          "dispersion": 0.0503,
+          "mkt": 0.152,
+          "dispersion": 0.0098,
           "mejor_cuota": 6.1,
           "mejor_casa": "betrivers",
           "premio": 0.1091,
@@ -5506,8 +7765,8 @@ window.QB_DATA = {
         {
           "name": "RCC win",
           "model": null,
-          "mkt": 0.5824,
-          "dispersion": 0.0851,
+          "mkt": 0.5811,
+          "dispersion": 0.0081,
           "mejor_cuota": 1.69,
           "mejor_casa": "fanatics",
           "premio": 0.0432,
@@ -5515,45 +7774,45 @@ window.QB_DATA = {
         }
       ],
       "max_premio": 0.1091,
-      "max_disp": 0.0851,
+      "max_disp": 0.0108,
       "xg": [
         1.54,
-        0.66
+        0.67
       ],
       "scores": [
         {
           "s": "1-0",
-          "p": 0.1699508930310069
+          "p": 0.16996797451142942
         },
         {
           "s": "2-0",
-          "p": 0.13070544228665967
+          "p": 0.13057257958487825
         },
         {
           "s": "1-1",
-          "p": 0.11296198287002228
+          "p": 0.1130583100637244
         },
         {
           "s": "0-0",
-          "p": 0.1104900665830374
+          "p": 0.11062472860444122
         },
         {
           "s": "2-1",
-          "p": 0.08687654221334726
+          "p": 0.08685351008601219
         }
       ],
       "bets": [
         {
           "name": "over 1.5 goals",
-          "p": 0.6461
+          "p": 0.6458
         },
         {
           "name": "over 2.5 goals",
-          "p": 0.378
+          "p": 0.3777
         },
         {
           "name": "over 3.5 goals",
-          "p": 0.1812
+          "p": 0.181
         },
         {
           "name": "both teams score",
@@ -5561,22 +7820,22 @@ window.QB_DATA = {
         },
         {
           "name": "RCC 2+ goles",
-          "p": 0.4549
+          "p": 0.4543
         },
         {
           "name": "NOB 2+ goles",
-          "p": 0.1436
+          "p": 0.1438
         },
         {
           "name": "RCC gana por 2+",
-          "p": 0.3112
+          "p": 0.3106
         },
         {
           "name": "NOB gana por 2+",
-          "p": 0.0421
+          "p": 0.0422
         }
       ],
-      "ajuste_err": 0.0219,
+      "ajuste_err": 0.0226,
       "n_totales": 1
     },
     {
@@ -5939,7 +8198,7 @@ window.QB_DATA = {
           "name": "DYJ win",
           "model": null,
           "mkt": 0.199,
-          "dispersion": 0.0456,
+          "dispersion": 0.0386,
           "mejor_cuota": 4.9,
           "mejor_casa": "Betsson",
           "premio": 0.1136,
@@ -5949,7 +8208,7 @@ window.QB_DATA = {
           "name": "empate",
           "model": null,
           "mkt": 0.2842,
-          "dispersion": 0.0212,
+          "dispersion": 0.0163,
           "mejor_cuota": 3.4,
           "mejor_casa": "Entain",
           "premio": 0.0625,
@@ -5959,7 +8218,7 @@ window.QB_DATA = {
           "name": "LAN win",
           "model": null,
           "mkt": 0.5192,
-          "dispersion": 0.066,
+          "dispersion": 0.0516,
           "mejor_cuota": 1.88,
           "mejor_casa": "betrivers",
           "premio": 0.0273,
@@ -5967,7 +8226,7 @@ window.QB_DATA = {
         }
       ],
       "max_premio": 0.1136,
-      "max_disp": 0.066,
+      "max_disp": 0.0516,
       "xg": [
         1.42,
         0.78
