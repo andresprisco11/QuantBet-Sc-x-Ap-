@@ -52,6 +52,11 @@ header{display:flex;align-items:center;gap:12px;margin-bottom:26px}
 .wordmark{font:800 19px/1 var(--disp);letter-spacing:-.02em;color:var(--ink)}
 .wordmark span{font-weight:400;color:var(--muted)}
 .stamp{margin-left:auto;font:400 11px/1.3 var(--num);color:var(--faint);text-align:right}
+.live{display:inline-flex;align-items:center;gap:5px;color:var(--pos);font-weight:600}
+.live i{width:6px;height:6px;border-radius:50%;background:var(--pos);
+        animation:lat 2.4s ease-in-out infinite}
+@keyframes lat{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.live i{animation:none}}
 
 /* ---------------- veredicto ---------------- */
 .verdict{background:var(--card);border:1px solid var(--rule);border-radius:14px;
@@ -202,6 +207,31 @@ summary:hover{color:var(--muted)}
 .news .tl{font:500 12.5px/1.45 var(--disp);color:var(--ink)}
 .news .mt{font:400 10.5px/1.6 var(--num);color:var(--faint);margin-top:2px}
 .news .hh{color:var(--flood);font-weight:600}
+.tabs{display:flex;gap:8px;margin-bottom:18px;border-bottom:1px solid var(--rule)}
+.tab{background:none;border:0;padding:9px 2px;margin-right:18px;cursor:pointer;
+     font:600 13px/1.4 var(--disp);color:var(--muted);border-bottom:2px solid transparent;
+     margin-bottom:-1px;transition:.14s}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--pitch)}
+.tab .n{font:500 11px var(--num);color:var(--faint);margin-left:5px}
+.rleague{margin-bottom:22px}
+.rhead{display:flex;align-items:baseline;gap:10px;margin-bottom:9px}
+.rhead h2{font:600 13px/1.3 var(--disp);letter-spacing:.02em}
+.rhead .c{font:500 11px var(--num);color:var(--faint);margin-left:auto}
+.rrow{display:grid;grid-template-columns:52px 1fr 62px 1fr 58px;gap:10px;align-items:center;
+      background:var(--card);border:1px solid var(--rule);border-radius:9px;
+      padding:10px 13px;margin-bottom:6px;font-size:13px}
+.rrow .f{font:400 11px var(--num);color:var(--faint)}
+.rrow .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.rrow .t.r{text-align:right}
+.rrow .t.w{font-weight:600}
+.rrow .t.l{color:var(--muted)}
+.rrow .m{font:600 15px/1 var(--num);text-align:center;letter-spacing:-.02em;color:var(--ink)}
+.rrow .q{font:500 10.5px/1.3 var(--num);text-align:right;color:var(--muted)}
+.rrow.sorpresa{border-color:var(--flood)}
+.rrow.sorpresa .q{color:var(--flood);font-weight:600}
+@media(max-width:560px){.rrow{grid-template-columns:1fr 58px 1fr;gap:8px;font-size:12.5px}
+  .rrow .f{display:none}.rrow .q{grid-column:1/-1;text-align:left;margin-top:2px}}
 footer{margin-top:30px;padding-top:18px;border-top:1px solid var(--rule);
        font-size:12.5px;line-height:1.85;color:var(--muted)}
 footer b{color:var(--ink);font-weight:600}
@@ -254,6 +284,7 @@ footer b{color:var(--ink);font-weight:600}
   </section>
 
   <div class="kpis" id="kpis"></div>
+  <div class="tabs" id="tabs"></div>
   <div class="bar" id="bar"></div>
   <div id="list"></div>
 
@@ -266,11 +297,16 @@ footer b{color:var(--ink);font-weight:600}
     La columna del modelo no existe a propósito: el v4 dio peso cero contra el mercado.
   </footer>
 </div>
-<script src="data.js"></script>
-<script src="colors.js"></script>
 <script>
-const D=window.QB_DATA,P=D.partidos||[],TC=window.QB_COLORS||{};
-let liga="TODAS",orden="fecha";
+// --------------------------------------------------------------------
+// Datos: la pagina intenta leer la version viva de su propia base de
+// datos y, si no puede, usa el snapshot que viene embebido. Nunca queda
+// en blanco: el snapshot garantiza que siempre haya algo que mostrar,
+// y la base de datos lo reemplaza cuando hay algo mas nuevo.
+// --------------------------------------------------------------------
+let D=window.QB_DATA, P=D.partidos||[];
+const TC=window.QB_COLORS||{};
+let liga="TODAS",orden="fecha",vivo=false,vista="partidos";
 const pct=v=>v==null?"—":(v*100).toFixed(0)+"%";
 const nice=k=>String(k).replace(/^soccer_/,"").replace(/_/g," ")
   .replace(/\b\w/g,c=>c.toUpperCase());
@@ -374,8 +410,52 @@ function card(m){
       </div></details>`:""}
   </article>`;
 }
+function filaResultado(r){
+  const gano = r.resultado, sor = r.sorpresa;
+  const pGanadora = r.p[gano];
+  return `<div class="rrow ${sor?"sorpresa":""}">
+    <span class="f">${esc(r.fecha)}</span>
+    <span class="t ${gano==="L"?"w":"l"}">${esc(r.local)}</span>
+    <span class="m">${r.gl}–${r.gv}</span>
+    <span class="t r ${gano==="V"?"w":"l"}">${esc(r.visitante)}</span>
+    <span class="q">${sor?"sorpresa · ":""}mkt ${(pGanadora*100).toFixed(0)}%</span>
+  </div>`;
+}
+
+function vistaResultados(){
+  const R = D.resultados || [];
+  if(!R.length) return `<div class="match"><div class="empty">
+    Todavía no hay partidos archivados.<br><br>
+    Cuando un partido se juega, pasa acá <b>junto con el precio que el mercado
+    le había puesto</b> antes de empezar.<br>
+    Un resultado solo no informa; el par precio-resultado sí.</div></div>`;
+
+  const porLiga = {};
+  for(const r of R){ (porLiga[r.league] ||= []).push(r); }
+  const ligas = Object.keys(porLiga).sort();
+  const total = R.length, sor = R.filter(r=>r.sorpresa).length;
+
+  return `<div class="bar" style="margin-bottom:14px">
+      <span style="font:400 12px/1.5 var(--disp);color:var(--muted)">
+        ${total} partidos archivados · el favorito del mercado acertó
+        <b style="color:var(--ink)">${((total-sor)/total*100).toFixed(0)}%</b>
+        de las veces · las marcadas en ámbar son las que falló</span>
+    </div>` +
+    ligas.map(l=>{
+      const g = porLiga[l];
+      const s = g.filter(r=>r.sorpresa).length;
+      return `<section class="rleague">
+        <div class="rhead"><h2>${esc(nice(l))}</h2>
+          <span class="c">${g.length} partidos · ${s} sorpresas</span></div>
+        ${g.map(filaResultado).join("")}
+      </section>`;
+    }).join("");
+}
+
 function render(){
-  document.getElementById("stamp").textContent=D.generado||"";
+  document.getElementById("stamp").innerHTML =
+    (vivo?`<span class="live"><i></i>en vivo</span><br>`:"")
+    + (D.generado||"");
   const outs=P.flatMap(m=>m.outcomes||[]).filter(o=>o.premio!=null);
   const medio=outs.length?outs.reduce((a,o)=>a+o.premio,0)/outs.length:null;
   const casas=Math.round(outs.reduce((a,o)=>a+(o.n_casas||0),0)/Math.max(outs.length,1));
@@ -385,6 +465,20 @@ function render(){
     <div class="kpi"><div class="k">Casas por apuesta</div><div class="v">${casas}</div></div>
     <div class="kpi"><div class="k">Premio medio</div>
       <div class="v flood">+${medio!=null?(medio*100).toFixed(1):"—"}%</div></div>`;
+  const nRes=(D.resultados||[]).length;
+  document.getElementById("tabs").innerHTML=`
+    <button class="tab" aria-selected="${vista==="partidos"}" data-v="partidos">
+      Por jugar<span class="n">${P.length}</span></button>
+    <button class="tab" aria-selected="${vista==="resultados"}" data-v="resultados">
+      Resultados<span class="n">${nRes}</span></button>`;
+  document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{vista=b.dataset.v;render()});
+
+  if(vista==="resultados"){
+    document.getElementById("bar").innerHTML="";
+    document.getElementById("list").innerHTML=vistaResultados();
+    return;
+  }
+
   document.getElementById("bar").innerHTML=`
     <div class="chips">${["TODAS",...(D.ligas||[])].map(l=>
       `<button class="chip" aria-pressed="${l===liga}" data-l="${esc(l)}">${l==="TODAS"?"Todas":esc(nice(l))}</button>`).join("")}</div>
@@ -403,6 +497,36 @@ function render(){
   document.getElementById("ord").onchange=e=>{orden=e.target.value;render()};
 }
 render();
+
+// --- actualizacion automatica ---------------------------------------
+// Se suscribe a la coleccion `matchday` de la base de datos del propio
+// artifact. Cada liga es un documento: partirlo asi evita un documento
+// gigante y permite actualizar una liga sin reescribir el resto.
+// onSnapshot avisa en cuanto algo cambia, asi que el telefono se pone
+// al dia sin recargar la pagina.
+(async () => {
+  const db = await claude.use("db");
+  if (!db) return;                      // sin base de datos: queda el snapshot
+  try {
+    db.collection("matchday").onSnapshot(snap => {
+      const docs = snap.docs || [];
+      if (!docs.length) return;
+      const partidos = [];
+      let generado = "";
+      for (const doc of docs) {
+        const d = typeof doc.data === "function" ? doc.data() : doc;
+        if (Array.isArray(d?.partidos)) partidos.push(...d.partidos);
+        if (d?.generado && d.generado > generado) generado = d.generado;
+      }
+      if (!partidos.length) return;
+      P = partidos;
+      D = {...D, partidos, generado: generado || D.generado,
+           ligas: [...new Set(partidos.map(m => m.league))].sort()};
+      vivo = true;
+      render();
+    });
+  } catch (e) { /* la pagina sigue con el snapshot */ }
+})();
 </script>
 
 </body>

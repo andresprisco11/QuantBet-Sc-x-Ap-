@@ -51,6 +51,7 @@ from src.tracking.run_logger import RUNS_DIR
 APP = RAIZ / "app"
 RAW = RAIZ / "data" / "raw"
 NEWS = RUNS_DIR / "news_log.csv"
+RESULTADOS = RUNS_DIR / "resultados.csv"
 
 # liga de The Odds API -> carpeta del historico
 HIST = {
@@ -156,6 +157,44 @@ def noticias_por_equipo(dias: int) -> dict:
     return mapa
 
 
+def cargar_resultados(max_por_liga: int = 40) -> list:
+    """Resultados archivados, listos para la pantalla de Resultados.
+
+    Se acompaña cada marcador con lo que el mercado decia ANTES -- sin eso
+    un resultado no informa nada. `sorpresa` marca los partidos donde no
+    gano el favorito del mercado: son los que ensenan algo."""
+    if not RESULTADOS.exists():
+        return []
+    d = pd.read_csv(RESULTADOS)
+    if d.empty:
+        return []
+    d = d.sort_values("commence_time", ascending=False)
+    salida = []
+    for liga, g in d.groupby("league"):
+        for _, r in g.head(max_por_liga).iterrows():
+            probs = {"L": r.get("p_local"), "E": r.get("p_empate"), "V": r.get("p_visitante")}
+            probs = {k: (float(v) if pd.notna(v) else 0.0) for k, v in probs.items()}
+            fav = max(probs, key=probs.get)
+            try:
+                fecha = pd.Timestamp(r["commence_time"]).strftime("%d/%m/%y")
+            except Exception:
+                fecha = ""
+            salida.append({
+                "league": liga, "fecha": fecha,
+                "local": r["local"], "visitante": r["visitante"],
+                "gl": int(r["gl"]), "gv": int(r["gv"]),
+                "resultado": r["resultado"],
+                "p": {"L": round(probs["L"], 3), "E": round(probs["E"], 3),
+                      "V": round(probs["V"], 3)},
+                "favorito": fav,
+                "sorpresa": int(r["resultado"] != fav),
+                "cuota_ganadora": (r.get("cuota_local") if r["resultado"] == "L"
+                                   else r.get("cuota_empate") if r["resultado"] == "E"
+                                   else r.get("cuota_visitante")),
+            })
+    return salida
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--h2h", type=int, default=6)
@@ -209,6 +248,15 @@ def main():
         if fl and fv:
             p["forma"] = {"local": fl, "visitante": fv}
             con_forma += 1
+
+    res = cargar_resultados()
+    data["resultados"] = res
+    if res:
+        ac = sum(1 for r in res if not r["sorpresa"]) / len(res)
+        print(f"resultados archivados: {len(res)} | acierto del favorito: {ac:.0%}")
+    else:
+        print("resultados archivados: 0 (corre results_archive --actualizar "
+              "cuando haya partidos jugados)")
 
     js.write_text("// Generado por src/app/export_app_data.py + enrich_app_data.py\n"
                   "window.QB_DATA = " + json.dumps(data, ensure_ascii=False, indent=1) + ";\n",
