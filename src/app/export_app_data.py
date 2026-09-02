@@ -139,6 +139,8 @@ def construir_partido(grp: pd.DataFrame, tot: pd.DataFrame | None = None) -> dic
                     else f"{_abbr(via)} win" if via in (home, away) else via)
         outcomes.append({
             "name": etiqueta,
+            "_via": via,          # nombre crudo: necesario para saber quien es local
+
             "model": None,          # se llena cuando exista modelo validado
             "mkt": round(float(np.median(ps)), 4),
             "dispersion": round(float(np.std(ps, ddof=1)), 4),
@@ -157,22 +159,31 @@ def construir_partido(grp: pd.DataFrame, tot: pd.DataFrame | None = None) -> dic
 
     # --- traduccion del mercado a grilla de marcadores ---
     #     NO es prediccion: es el precio del mercado reexpresado.
+    # BUG CORREGIDO 2026-09-02: antes se tomaban las probabilidades en el orden
+    # en que quedaban en la lista, y esa lista viene de `sorted(outcome_name)`
+    # -- o sea ORDEN ALFABETICO, no local/visitante. En Valencia vs Barcelona
+    # el orden alfabetico pone Barcelona primero, asi que su 75% entraba como
+    # probabilidad del LOCAL siendo el visitante. Resultado: la grilla entera
+    # espejada (xg 2.63-0.89 al reves, "visitante gana por 2+" 3% en vez de 53%).
+    # Ahora se mapea por nombre de equipo explicitamente.
     extra = {}
     try:
-        pm = {o["name"]: o["mkt"] for o in outcomes}
-        ph = next((v for k, v in pm.items() if k.endswith("win") and k != "empate"), None)
-        pa_k = [k for k in pm if k.endswith("win")]
-        if len(pa_k) == 2 and "empate" in pm:
-            ph, pa = pm[pa_k[0]], pm[pa_k[1]]
+        por_via = {o["_via"]: o["mkt"] for o in outcomes}
+        p_home = por_via.get(home)
+        p_away = por_via.get(away)
+        p_draw = next((v for k, v in por_via.items() if str(k).lower() == "draw"), None)
+        if None not in (p_home, p_away, p_draw):
             totales = _totales_consenso(tot) if tot is not None and not tot.empty else {}
-            lh, la, err = ajustar(ph, pm["empate"], pa, totales)
+            lh, la, err = ajustar(p_home, p_draw, p_away, totales)
             if err < 0.05:          # ajuste malo -> no se muestra nada
-                extra = derivar(lh, la)
+                extra = derivar(lh, la, local=_abbr(home), visitante=_abbr(away))
                 extra["ajuste_err"] = round(err, 4)
                 extra["n_totales"] = len(totales)
     except Exception:
         extra = {}
 
+    for o in outcomes:
+        o.pop("_via", None)
     premios = [o["premio"] for o in outcomes if o["premio"] is not None]
     return {
         "league": grp["league"].iloc[0],

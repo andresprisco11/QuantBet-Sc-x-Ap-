@@ -85,7 +85,8 @@ def ajustar(p_home, p_draw, p_away, totales=None):
     return float(mejor[0]), float(mejor[1]), float(np.sqrt(mejor_e))
 
 
-def derivar(lam_h: float, lam_a: float, top: int = 5) -> dict:
+def derivar(lam_h: float, lam_a: float, top: int = 5,
+            local: str = "local", visitante: str = "visitante") -> dict:
     """Expande la grilla a todo lo que la interfaz muestra."""
     g = grilla(lam_h, lam_a)
     i, j = np.indices(g.shape)
@@ -98,10 +99,10 @@ def derivar(lam_h: float, lam_a: float, top: int = 5) -> dict:
     btts = float(g[1:, 1:].sum())
     bets = [{"name": f"over {l} goals", "p": round(_over(g, l), 4)} for l in (1.5, 2.5, 3.5)]
     bets.append({"name": "both teams score", "p": round(btts, 4)})
-    bets.append({"name": "local 2+ goles", "p": round(float(g[2:, :].sum()), 4)})
-    bets.append({"name": "visitante 2+ goles", "p": round(float(g[:, 2:].sum()), 4)})
-    bets.append({"name": "local gana por 2+", "p": round(float(g[(i - j) >= 2].sum()), 4)})
-    bets.append({"name": "visitante gana por 2+", "p": round(float(g[(j - i) >= 2].sum()), 4)})
+    bets.append({"name": f"{local} 2+ goles", "p": round(float(g[2:, :].sum()), 4)})
+    bets.append({"name": f"{visitante} 2+ goles", "p": round(float(g[:, 2:].sum()), 4)})
+    bets.append({"name": f"{local} gana por 2+", "p": round(float(g[(i - j) >= 2].sum()), 4)})
+    bets.append({"name": f"{visitante} gana por 2+", "p": round(float(g[(j - i) >= 2].sum()), 4)})
 
     return {"xg": [round(lam_h, 2), round(lam_a, 2)],
             "scores": marcadores, "bets": bets}
