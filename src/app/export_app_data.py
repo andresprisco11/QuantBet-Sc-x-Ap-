@@ -186,6 +186,7 @@ def construir_partido(grp: pd.DataFrame, tot: pd.DataFrame | None = None) -> dic
         o.pop("_via", None)
     premios = [o["premio"] for o in outcomes if o["premio"] is not None]
     return {
+        "event_id": grp["event_id"].iloc[0],   # lo necesita results_archive
         "league": grp["league"].iloc[0],
         "date": fecha,
         "ts": str(grp["commence_time"].iloc[0]),
