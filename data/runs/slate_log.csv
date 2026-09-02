@@ -1,0 +1,9 @@
+slate_id,generado_utc,tipo,piernas,descripcion,cuota,prob_mercado,premio_medio,stake_frac,eficiencia_vs_sueltas,detalle,resuelto,gano,clv
+202609020504,2026-09-02T05:04:08.979884+00:00,simple,1,empate — Elversberg vs Bayern Munich,9.5,0.1025,0.1875,0.0,1.0,empate @9.5 (bovada),0,,
+202609020504,2026-09-02T05:04:08.979884+00:00,simple,1,GEN win — Genoa vs Como,5.58,0.1858,0.1872,0.0008,1.0,GEN win @5.58 (BetOnline),0,,
+202609020504,2026-09-02T05:04:08.979884+00:00,simple,1,empate — Valencia vs Barcelona,6.48,0.16,0.1782,0.00067,1.0,empate @6.48 (BetOnline),0,,
+202609020504,2026-09-02T05:04:08.979884+00:00,simple,1,NOB win — Newells Old Boys vs Velez Sarsfield BA,3.0,0.3443,0.1765,0.00164,1.0,NOB win @3.0 (betrivers),0,,
+202609020504,2026-09-02T05:04:08.979884+00:00,simple,1,TOR win — Fiorentina vs Torino,4.88,0.2115,0.1349,0.00083,1.0,TOR win @4.88 (BetOnline),0,,
+202609020504,2026-09-02T05:04:08.979884+00:00,simple,1,AHH win — Belgrano de Cordoba vs Atlético Huracán,4.85,0.2056,0.1279,0.0,1.0,AHH win @4.85 (BetOnline),0,,
+202609020504,2026-09-02T05:04:08.979884+00:00,combinada,2,Valencia vs Barcelona | Elversberg vs Bayern Munich,61.56,0.0164,0.1829,2e-05,0.005,empate @6.48 (BetOnline) + empate @9.5 (bovada),0,,
+202609020504,2026-09-02T05:04:08.979884+00:00,combinada,3,Rosario Central vs Newells Old Boys | Belgrano de Cordoba vs Atlético Huracán | Newells Old Boys vs Velez Sarsfield BA,88.75,0.0108,0.1378,0.0,0.015,NOB win @6.1 (betrivers) + AHH win @4.85 (BetOnline) + NOB win @3.0 (betrivers),0,,
