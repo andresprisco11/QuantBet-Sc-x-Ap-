@@ -1,0 +1,58 @@
+liga,event_id,partido,mercado,dispersion,overround,n_casas,n_lineas
+soccer_spain_la_liga,0817220a8e0794e15ecba51338bb6cf8,Getafe vs Celta Vigo,h2h,0.007054073522195539,0.06181891824282859,36.0,1
+soccer_spain_la_liga,0817220a8e0794e15ecba51338bb6cf8,Getafe vs Celta Vigo,h2h_lay,0.0,-0.011905704706845155,4.0,1
+soccer_spain_la_liga,0817220a8e0794e15ecba51338bb6cf8,Getafe vs Celta Vigo,totals,0.009913359587330514,0.061728395061728225,11.0,1
+soccer_spain_la_liga,095ea49c978f544d67fe23026a8e4907,CA Osasuna vs Espanyol,h2h,0.049824967007781516,0.0727794443719838,9.0,1
+soccer_spain_la_liga,0eba3c2d3bcf1d1fe4ab3180a3d03152,Celta Vigo vs Málaga,h2h,0.006773761774503387,0.06490334287110056,27.0,1
+soccer_spain_la_liga,0eba3c2d3bcf1d1fe4ab3180a3d03152,Celta Vigo vs Málaga,totals,0.004861609456188108,0.06442577030812324,9.0,1
+soccer_spain_la_liga,1484e27f774c67d124acae27e82e60fa,Real Betis vs Real Madrid,h2h,0.010357728958577951,0.05960534898891057,35.0,1
+soccer_spain_la_liga,1484e27f774c67d124acae27e82e60fa,Real Betis vs Real Madrid,h2h_lay,0.0,-0.007936507936507908,4.0,1
+soccer_spain_la_liga,1484e27f774c67d124acae27e82e60fa,Real Betis vs Real Madrid,totals,0.004696635471324602,0.06758526447645608,14.0,1
+soccer_spain_la_liga,14e37b5aaf6fec05a01f7e1309025a66,Real Sociedad vs Atlético Madrid,h2h,0.004447542107034098,0.0629863823366359,27.0,1
+soccer_spain_la_liga,14e37b5aaf6fec05a01f7e1309025a66,Real Sociedad vs Atlético Madrid,totals,0.008955274595416878,0.06477620239088133,9.0,1
+soccer_spain_la_liga,15e3bf25540c88237a06c03df1cb334b,Getafe vs Deportivo La Coruña,h2h,0.009635690582189072,0.0645509471454564,26.0,1
+soccer_spain_la_liga,15e3bf25540c88237a06c03df1cb334b,Getafe vs Deportivo La Coruña,totals,0.0030756143709631456,0.06430155210643007,7.0,1
+soccer_spain_la_liga,21d097a6de34ab1f68bf4c9380757fcc,Málaga vs Levante,h2h,0.006422863144945314,0.059591030364835484,36.0,1
+soccer_spain_la_liga,21d097a6de34ab1f68bf4c9380757fcc,Málaga vs Levante,h2h_lay,0.0,-0.008084926884139532,4.0,1
+soccer_spain_la_liga,21d097a6de34ab1f68bf4c9380757fcc,Málaga vs Levante,totals,0.012297991171802351,0.06323132313231339,16.0,1
+soccer_spain_la_liga,3a2b53cf7ad98755cf07c3eac948b056,Athletic Bilbao vs Atlético Madrid,h2h,0.0035898729967096354,0.05942376950780304,36.0,1
+soccer_spain_la_liga,3a2b53cf7ad98755cf07c3eac948b056,Athletic Bilbao vs Atlético Madrid,h2h_lay,0.0006119685832995289,-0.009737985147821204,4.0,1
+soccer_spain_la_liga,3a2b53cf7ad98755cf07c3eac948b056,Athletic Bilbao vs Atlético Madrid,spreads,0.0027041174712047556,0.026419837134403323,5.0,1
+soccer_spain_la_liga,3a2b53cf7ad98755cf07c3eac948b056,Athletic Bilbao vs Atlético Madrid,totals,0.009462720949582972,0.06434177621111248,16.0,1
+soccer_spain_la_liga,50cc233d42943dcf77315adb0aaa6c09,Real Racing Club de Santander vs Alavés,h2h,0.009866676598328324,0.06554818571985965,29.0,1
+soccer_spain_la_liga,50cc233d42943dcf77315adb0aaa6c09,Real Racing Club de Santander vs Alavés,totals,0.009386306741119812,0.06410074996462423,12.0,1
+soccer_spain_la_liga,5a4aaa142d12a350f302f2fb62fef0b3,Real Sociedad vs Celta Vigo,h2h,0.006260614884998384,0.05893373058866036,36.0,1
+soccer_spain_la_liga,5a4aaa142d12a350f302f2fb62fef0b3,Real Sociedad vs Celta Vigo,h2h_lay,0.0,-0.003697362217424782,4.0,1
+soccer_spain_la_liga,5a4aaa142d12a350f302f2fb62fef0b3,Real Sociedad vs Celta Vigo,totals,0.005657959012838261,0.06434177621111248,16.0,1
+soccer_spain_la_liga,6406438af00a2a42a81d6b2f1656d474,Levante vs Barcelona,h2h,0.012464576781696247,0.062373285629099495,27.0,1
+soccer_spain_la_liga,6406438af00a2a42a81d6b2f1656d474,Levante vs Barcelona,totals,0.007506445171807586,0.06758526447645608,9.0,1
+soccer_spain_la_liga,69178ef705263258d50abce330d9101f,Athletic Bilbao vs Elche CF,h2h,0.009520290677897258,0.06959706959706957,21.0,1
+soccer_spain_la_liga,69178ef705263258d50abce330d9101f,Athletic Bilbao vs Elche CF,totals,0.0062852562620180335,0.06575963718820876,9.0,1
+soccer_spain_la_liga,73639380311449b9494a3230cf1356ba,Valencia vs Barcelona,h2h,0.01253450255657778,0.06098771503332989,36.0,1
+soccer_spain_la_liga,73639380311449b9494a3230cf1356ba,Valencia vs Barcelona,h2h_lay,0.0011174014483483995,-0.014148009950248785,4.0,1
+soccer_spain_la_liga,73639380311449b9494a3230cf1356ba,Valencia vs Barcelona,totals,0.010141500406214223,0.06251752172694136,14.0,1
+soccer_spain_la_liga,79bc2eff76fa09664659765d5b1ded1a,Sevilla vs Valencia,h2h,0.008049083617039472,0.060452549814251855,17.0,1
+soccer_spain_la_liga,79bc2eff76fa09664659765d5b1ded1a,Sevilla vs Valencia,totals,0.005354073616981203,0.06601731601731609,7.0,1
+soccer_spain_la_liga,823ef5c97dc93ff1e8fd7dbafb90c9d5,Espanyol vs Sevilla,h2h,0.006893570011467834,0.05978260869565233,36.0,1
+soccer_spain_la_liga,823ef5c97dc93ff1e8fd7dbafb90c9d5,Espanyol vs Sevilla,h2h_lay,0.0010103706604441265,-0.005260640841702524,4.0,1
+soccer_spain_la_liga,823ef5c97dc93ff1e8fd7dbafb90c9d5,Espanyol vs Sevilla,totals,0.011959748998667445,0.07041492093526158,12.0,1
+soccer_spain_la_liga,98222f8385c445cb0cbfae0ab9073abd,Athletic Bilbao vs Elche CF,h2h,0.010112399354160058,0.06921850079744818,5.0,1
+soccer_spain_la_liga,988bf24f295c26c84ff1890b0df16cdf,CA Osasuna vs Espanyol,h2h,0.008147982677943122,0.06406138616163881,17.0,1
+soccer_spain_la_liga,988bf24f295c26c84ff1890b0df16cdf,CA Osasuna vs Espanyol,totals,0.007582367112439235,0.06490872210953347,7.0,1
+soccer_spain_la_liga,9b2649e0420d4d0fe486d8751bef8c57,Elche CF vs Real Sociedad,h2h,0.005224068630055389,0.05892449113725862,36.0,1
+soccer_spain_la_liga,9b2649e0420d4d0fe486d8751bef8c57,Elche CF vs Real Sociedad,h2h_lay,0.0011390284757118823,-0.012896825396825351,4.0,1
+soccer_spain_la_liga,9b2649e0420d4d0fe486d8751bef8c57,Elche CF vs Real Sociedad,totals,0.008817847937573377,0.06706887538962591,16.0,1
+soccer_spain_la_liga,a2b7ba5696cd299b4f44da1dcb77f1f5,Villarreal vs Deportivo La Coruña,h2h,0.007901773256299538,0.05727599706857989,35.0,1
+soccer_spain_la_liga,a2b7ba5696cd299b4f44da1dcb77f1f5,Villarreal vs Deportivo La Coruña,h2h_lay,0.0,-0.007180882180882198,4.0,1
+soccer_spain_la_liga,a2b7ba5696cd299b4f44da1dcb77f1f5,Villarreal vs Deportivo La Coruña,totals,0.0027093627191598787,0.06499516135739036,14.0,1
+soccer_spain_la_liga,aa0e2541144928205ab6d870953d42c2,Villarreal vs Real Betis,h2h,0.036273862766318436,0.06839947761735465,22.0,1
+soccer_spain_la_liga,aa0e2541144928205ab6d870953d42c2,Villarreal vs Real Betis,totals,0.0063964968492197915,0.0635964912280702,8.0,1
+soccer_spain_la_liga,aa32fa72ecc88644071b556b333fb28a,Sevilla vs Valencia,h2h,0.014694306500809905,0.08061594202898559,9.0,1
+soccer_spain_la_liga,cc2d83728ebda9924e83fe6a3d4642a5,Alavés vs CA Osasuna,h2h,0.0056300239787753364,0.05739834541561939,36.0,1
+soccer_spain_la_liga,cc2d83728ebda9924e83fe6a3d4642a5,Alavés vs CA Osasuna,h2h_lay,0.0,-0.014536599763872449,4.0,1
+soccer_spain_la_liga,cc2d83728ebda9924e83fe6a3d4642a5,Alavés vs CA Osasuna,totals,0.003634334548257896,0.05142350637002485,7.5,2
+soccer_spain_la_liga,d824443a97dfe00630e64d166b01493c,Rayo Vallecano vs Real Racing Club de Santander,h2h,0.005344377419652391,0.05602240896358546,35.0,1
+soccer_spain_la_liga,d824443a97dfe00630e64d166b01493c,Rayo Vallecano vs Real Racing Club de Santander,h2h_lay,0.0,-0.005245146090216535,4.0,1
+soccer_spain_la_liga,d824443a97dfe00630e64d166b01493c,Rayo Vallecano vs Real Racing Club de Santander,totals,0.007288304040703934,0.06138800276553569,16.0,1
+soccer_spain_la_liga,fc0154734861d4a222bdb50e15d2bee2,Real Madrid vs Rayo Vallecano,h2h,0.019589493449809123,0.06803025191183087,26.0,1
+soccer_spain_la_liga,fc0154734861d4a222bdb50e15d2bee2,Real Madrid vs Rayo Vallecano,totals,0.017825961209780715,0.06667425190579124,9.0,1
