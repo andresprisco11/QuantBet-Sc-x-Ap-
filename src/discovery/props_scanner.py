@@ -85,6 +85,20 @@ MERCADOS_EXCHANGE = {"h2h_lay", "spreads_lay", "totals_lay", "outrights_lay"}
 # misma, asi que casi nunca hay 4 casas sobre la linea identica.
 MIN_PARES = 8
 
+# Un mercado normal particiona el espacio: sus resultados son mutuamente
+# excluyentes y exhaustivos, asi que 1/cuota suma ~1.05 (el 5% es el margen).
+#
+# `double_chance` NO particiona: 1X, 12 y X2 cubren DOS resultados cada uno,
+# asi que la suma da ~2.0 y el "overround" salio 112.6%. Eso no es margen --
+# es que la formula no aplica. Peor: normalizar dividiendo por ~2 comprime la
+# dispersion a la mitad, y por eso double_chance dio ratio 0.49 con t=-6.94.
+# Otro numero espectacular que no significaba nada, como el h2h_lay.
+#
+# En vez de mantener una lista negra que se queda corta, se DETECTA: si el
+# overround mediano se sale de este rango, el mercado no es una particion y
+# no se puede comparar con la misma vara.
+OVERROUND_MAX = 0.35
+
 
 def _resolver(liga: str) -> str:
     return ALL_KEYS.get(liga, liga)
@@ -188,8 +202,20 @@ def medir(g: pd.DataFrame) -> dict | None:
     if len(por_casa) < MIN_CASAS:
         return None
     disp = [np.std([p[v] for p in por_casa.values()], ddof=1) for v in vias]
+    # --- premio de la mejor casa sobre la mediana ---
+    #     La dispersion dice que hay desacuerdo; el premio dice cuanto de ese
+    #     desacuerdo se puede EMBOLSAR buscando precio. Es lo que de verdad
+    #     interesa comparar entre mercados.
+    premios = []
+    for v in vias:
+        cu = g[g["via"] == v]["cuota"].dropna()
+        cu = cu[cu > 1.0]
+        if len(cu) >= MIN_CASAS:
+            premios.append(cu.max() / cu.median() - 1.0)
+
     return {"dispersion": float(np.mean(disp)),
             "overround": float(np.median(overrounds)),
+            "premio": float(np.mean(premios)) if premios else np.nan,
             "n_casas": len(por_casa)}
 
 
@@ -214,6 +240,7 @@ def analizar(raw: pd.DataFrame) -> pd.DataFrame:
     return (d.groupby(["event_id", "partido", "mercado"])
              .agg(dispersion=("dispersion", "mean"),
                   overround=("overround", "median"),
+                  premio=("premio", "mean"),
                   n_casas=("n_casas", "median"),
                   n_lineas=("dispersion", "size"))
              .reset_index())
@@ -225,36 +252,57 @@ def reportar(t: pd.DataFrame) -> None:
         print("Sin 1X2 de referencia, no se puede parear.")
         return
 
-    print(f"\n{'='*92}")
-    print("PROPS vs 1X2 -- comparacion PAREADA dentro del mismo partido")
-    print(f"{'='*92}")
-    print(f"{'mercado':<20}{'pares':>7}{'disp props':>12}{'disp 1X2':>11}"
-          f"{'ratio':>8}{'t pareado':>11}{'overr props':>13}{'overr 1X2':>11}")
-    print("-" * 92)
+    print(f"\n{'='*100}")
+    print("MERCADOS SECUNDARIOS vs 1X2 -- comparacion PAREADA dentro del mismo partido")
+    print(f"{'='*100}")
+    print(f"{'mercado':<20}{'pares':>6}{'disp':>8}{'ratio':>7}{'t disp':>8}"
+          f"{'premio':>9}{'prem 1X2':>10}{'t prem':>8}{'overr':>8}{'neto':>8}")
+    print("-" * 100)
 
+    descartados = []
     for mercado, g in t[t["mercado"] != "h2h"].groupby("mercado"):
         g = g.set_index("event_id")
+        ov = g["overround"].median()
+        if not (-0.02 <= ov <= OVERROUND_MAX):
+            descartados.append((mercado, ov, len(g)))
+            continue
         comun = g.index.intersection(base.index)
         if len(comun) < MIN_PARES:
-            print(f"{mercado:<20}{len(comun):>7}   (menos de {MIN_PARES} pares, "
-                  f"no se puede concluir)")
+            print(f"{mercado:<20}{len(comun):>6}   (menos de {MIN_PARES} pares)")
             continue
-        dp = g.loc[comun, "dispersion"].astype(float)
-        dh = base.loc[comun, "dispersion"].astype(float)
-        dif = (dp - dh).dropna()
-        t_stat = dif.mean() / (dif.std(ddof=1) / np.sqrt(len(dif))) if len(dif) > 1 else np.nan
-        print(f"{mercado:<20}{len(dif):>7}{dp.mean():>12.4f}{dh.mean():>11.4f}"
-              f"{dp.mean()/dh.mean():>8.2f}{t_stat:>11.2f}"
-              f"{g.loc[comun,'overround'].median():>12.1%}"
-              f"{base.loc[comun,'overround'].median():>11.1%}")
 
-    print("-" * 92)
-    print("ratio > 1  = el mercado secundario dispersa MAS que el 1X2 del mismo partido")
-    print("t pareado  = |t| > 2 significa que la diferencia no es casualidad de la muestra")
-    print("\n[LECTURA] Un ratio alto NO alcanza. Compara tambien las dos columnas de")
-    print("          overround: si el peaje sube mas que el desacuerdo, el terreno es")
-    print("          PEOR aunque disperse mas. Y dispersion alta dice que alguien se")
-    print("          equivoca, no que seas vos quien tiene razon -- eso lo decide el CLV.")
+        dp, dh = g.loc[comun, "dispersion"], base.loc[comun, "dispersion"]
+        dif = (dp - dh).dropna()
+        t_d = dif.mean()/(dif.std(ddof=1)/np.sqrt(len(dif))) if len(dif) > 1 else np.nan
+
+        pp, ph = g.loc[comun, "premio"], base.loc[comun, "premio"]
+        difp = (pp - ph).dropna()
+        t_p = (difp.mean()/(difp.std(ddof=1)/np.sqrt(len(difp)))
+               if len(difp) > 1 and difp.std(ddof=1) > 0 else np.nan)
+
+        # NETO: lo que se gana buscando precio menos lo que cuesta el peaje
+        # extra de ese mercado frente al 1X2. Es la unica cifra que combina
+        # las dos fuerzas en la direccion correcta.
+        neto = pp.mean() - (ov - base.loc[comun, "overround"].median())
+
+        print(f"{mercado:<20}{len(dif):>6}{dp.mean():>8.4f}"
+              f"{dp.mean()/dh.mean():>7.2f}{t_d:>8.2f}"
+              f"{pp.mean():>9.2%}{ph.mean():>10.2%}{t_p:>8.2f}"
+              f"{ov:>8.1%}{neto:>8.2%}")
+
+    print("-" * 100)
+    if descartados:
+        print("\nDESCARTADOS por no ser particion del espacio de resultados")
+        print("(sus 1/cuota no suman ~1, asi que overround y dispersion no son comparables):")
+        for m, ov, n in descartados:
+            print(f"   {m:<24} overround aparente {ov:>7.1%}   ({n} eventos)")
+
+    print("\nratio  = dispersion del secundario / dispersion del 1X2, mismo partido")
+    print("premio = cuanto paga la mejor casa sobre la mediana. ES LO CAPTURABLE.")
+    print("neto   = premio del secundario menos el peaje EXTRA que cobra vs el 1X2.")
+    print("         Si el neto no supera al premio del 1X2, no vale la pena mudarse.")
+    print("\n[AVISO] Ni la dispersion ni el premio son edge. Dicen que alguien se")
+    print("        equivoca, no que seas vos quien tiene razon. Eso solo lo dice el CLV.")
 
 
 def _pedir_sin_reintentos(url: str, params: dict):
