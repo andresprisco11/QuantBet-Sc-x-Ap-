@@ -158,6 +158,21 @@ def _espaciar():
     time.sleep(REQUEST_DELAY_SECONDS + random.uniform(0, REQUEST_JITTER_SECONDS))
 
 
+def _sin_key(msg) -> str:
+    """Quita la API key de cualquier texto antes de imprimirlo.
+
+    RIESGO REAL, encontrado el 2026-09-02: requests mete la URL COMPLETA en
+    el mensaje de sus excepciones, y esa URL lleva `apiKey=...` en el query
+    string. Cada 422 o 429 imprimia la key en pantalla -- y desde que el
+    ciclo automatico redirige su salida a data/runs/actualizacion.log, esa
+    key terminaba en un archivo que git sube a un repositorio PUBLICO.
+
+    Un secreto en un repo publico se scrapea en minutos. La proteccion no
+    puede depender de que nadie mire el log: se tapa en el origen.
+    """
+    return re.sub(r"(apiKey=)[^&\s\"\']+", r"\1***", str(msg))
+
+
 def _get_with_retries(url: str, params: dict, espaciar: bool = True) -> requests.Response:
     last_exc = None
     if espaciar:
@@ -175,7 +190,7 @@ def _get_with_retries(url: str, params: dict, espaciar: bool = True) -> requests
         except requests.RequestException as e:
             last_exc = e
             wait = BACKOFF_BASE_SECONDS * attempt
-            print(f"  [ERROR] {e} -- reintentando en {wait:.1f}s (intento {attempt}/{MAX_RETRIES})")
+            print(f"  [ERROR] {_sin_key(e)} -- reintentando en {wait:.1f}s (intento {attempt}/{MAX_RETRIES})")
             time.sleep(wait)
     raise RuntimeError(f"Se agotaron los reintentos contra {url}") from last_exc
 
@@ -438,7 +453,7 @@ def fetch_all_and_save() -> None:
             if not df.empty:
                 all_dfs.append(df)
         except Exception as e:
-            print(f"[ERROR] {league_key}: {e}")
+            print(f"[ERROR] {league_key}: {_sin_key(e)}")
 
     if not all_dfs:
         print("[AVISO] No se descargo nada -- ver errores arriba.")

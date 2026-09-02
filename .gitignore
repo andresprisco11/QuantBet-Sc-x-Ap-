@@ -9,8 +9,21 @@ __pycache__/
 data/raw/
 data/processed/
 
-# Variables de entorno / API keys (futuro)
+# Variables de entorno / API keys
 .env
+
+# ---------------------------------------------------------------
+# LOGS: NUNCA subir. La librería requests mete la URL completa en
+# el texto de sus excepciones, y esa URL lleva apiKey=... en el
+# query string. Con el ciclo automático redirigiendo su salida a un
+# archivo, un solo error de la API dejaba la key dentro del log --
+# y este repositorio es PÚBLICO. Un secreto en un repo público se
+# scrapea en minutos.
+# El código ya tapa la key antes de imprimirla (_sin_key), pero esto
+# es la segunda barrera: nunca depender de una sola.
+# ---------------------------------------------------------------
+*.log
+data/runs/*.log
 
 # Jupyter
 .ipynb_checkpoints/

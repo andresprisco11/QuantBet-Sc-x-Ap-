@@ -305,6 +305,8 @@ footer b{color:var(--ink);font-weight:600}
     La columna del modelo no existe a propósito: el v4 dio peso cero contra el mercado.
   </footer>
 </div>
+<script src="data.js"></script>
+<script src="colors.js"></script>
 <script>
 // --------------------------------------------------------------------
 // Datos: la pagina intenta leer la version viva de su propia base de
@@ -312,7 +314,10 @@ footer b{color:var(--ink);font-weight:600}
 // en blanco: el snapshot garantiza que siempre haya algo que mostrar,
 // y la base de datos lo reemplaza cuando hay algo mas nuevo.
 // --------------------------------------------------------------------
-let D=window.QB_DATA, P=D.partidos||[];
+let D=window.QB_DATA||{partidos:[],ligas:[],resultados:[]}, P=D.partidos||[];
+if(!window.QB_DATA){document.addEventListener('DOMContentLoaded',()=>{
+  const v=document.getElementById('list');
+  if(v) v.innerHTML='<div class="match"><div class="empty">No se pudo cargar <b>data.js</b>.<br>Verificá que esté junto a este archivo.</div></div>';});}
 const TC=window.QB_COLORS||{};
 let liga="TODAS",orden="fecha",vivo=false,vista="partidos";
 const pct=v=>v==null?"—":(v*100).toFixed(0)+"%";
@@ -460,10 +465,27 @@ function vistaResultados(){
     }).join("");
 }
 
+function antiguedad(sello){
+  if(!sello) return "";
+  const m = String(sello).match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+  if(!m) return esc(sello);
+  const t = Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5]);
+  const min = Math.max(0, Math.round((Date.now() - t)/60000));
+  const cuanto = min < 2 ? "recién"
+    : min < 60 ? `hace ${min} min`
+    : min < 1440 ? `hace ${Math.round(min/60)} h`
+    : `hace ${Math.round(min/1440)} d`;
+  const local = new Date(t).toLocaleString(undefined,
+    {day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit"});
+  return `datos ${cuanto}<br><span style="opacity:.75">${local}</span>`;
+}
+
 function render(){
+  // El sello es la hora en que se EXPORTARON los datos, no la hora actual.
+  // Se mostraba en UTC crudo y se leia como un reloj descompuesto. Ahora va
+  // la antiguedad ("hace 1 h") y la hora local del telefono.
   document.getElementById("stamp").innerHTML =
-    (vivo?`<span class="live"><i></i>en vivo</span><br>`:"")
-    + (D.generado||"");
+    (vivo?`<span class="live"><i></i>en vivo</span><br>`:"") + antiguedad(D.generado);
   const outs=P.flatMap(m=>m.outcomes||[]).filter(o=>o.premio!=null);
   const medio=outs.length?outs.reduce((a,o)=>a+o.premio,0)/outs.length:null;
   const casas=Math.round(outs.reduce((a,o)=>a+(o.n_casas||0),0)/Math.max(outs.length,1));
@@ -513,8 +535,6 @@ render();
 // onSnapshot avisa en cuanto algo cambia, asi que el telefono se pone
 // al dia sin recargar la pagina.
 (async () => {
-  // fuera de claude.ai no existe `claude.use`: la pagina vive de data.js,
-  // que se regenera con el ciclo automatico y se sube con un push
   const db = (typeof claude !== "undefined" && claude.use)
     ? await claude.use("db") : null;
   if (!db) return;                      // sin base de datos: queda el snapshot
