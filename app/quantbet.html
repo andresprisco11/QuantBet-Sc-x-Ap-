@@ -4,186 +4,269 @@
 <title>QuantBet</title>
 <style>
 :root{
-  --bg:#080f0c; --panel:#0e1a14; --panel2:#122219; --line:#1c3527;
-  --txt:#d7e8dd; --mut:#5f7d6c; --dim:#3d5548;
-  --bar:#4ea87c; --bar2:#2a5b43; --hi:#7fe0aa;
-  --pos:#7fe0aa; --neg:#e08a7f;
-  --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  --bg:#070d0a; --panel:#0d1712; --panel2:#122019; --line:#1b3025; --line2:#254534;
+  --txt:#dcece2; --mut:#688a76; --dim:#41604f;
+  --bar:#4ea87c; --bar2:#24513b; --hi:#7fe0aa;
+  --pos:#7fe0aa; --neg:#e0897e; --warn:#e0c67e;
+  --mono:"SF Mono",ui-monospace,"Cascadia Mono",Menlo,Consolas,monospace;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--txt);font:13px/1.5 var(--mono);
+html{scrollbar-color:var(--line2) transparent}
+body{margin:0;background:var(--bg);color:var(--txt);font:13px/1.55 var(--mono);
      -webkit-font-smoothing:antialiased}
-.wrap{max-width:760px;margin:0 auto;padding:14px}
-.top{display:flex;align-items:baseline;justify-content:space-between;
-     padding:4px 2px 14px;border-bottom:1px solid var(--line);margin-bottom:14px}
-.brand{font-size:15px;letter-spacing:.22em;color:var(--hi)}
-.brand b{font-weight:600}
-.meta{font-size:10px;color:var(--dim);letter-spacing:.12em}
-.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
-.tab{padding:5px 12px;border:1px solid var(--line);background:transparent;color:var(--mut);
-     font:11px/1 var(--mono);letter-spacing:.14em;cursor:pointer;border-radius:2px}
-.tab:hover{color:var(--txt);border-color:var(--bar2)}
+.wrap{max-width:940px;margin:0 auto;padding:16px 16px 60px}
+
+/* ---------- cabecera ---------- */
+.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+     padding:2px 2px 14px;border-bottom:1px solid var(--line)}
+.brand{font-size:16px;letter-spacing:.24em;color:var(--hi)}
+.brand b{font-weight:600;color:var(--txt)}
+.stamp{font-size:10px;color:var(--dim);letter-spacing:.1em;margin-left:auto}
+.kpis{display:flex;gap:0;margin:14px 0;border:1px solid var(--line);border-radius:3px;
+      overflow:hidden;background:var(--panel)}
+.kpi{flex:1;padding:11px 14px;border-right:1px solid var(--line);min-width:0}
+.kpi:last-child{border-right:0}
+.kpi .k{font-size:9px;color:var(--dim);letter-spacing:.2em;white-space:nowrap;
+        overflow:hidden;text-overflow:ellipsis}
+.kpi .v{font-size:17px;color:var(--txt);font-weight:600;margin-top:3px}
+.kpi .v.neg{color:var(--neg)} .kpi .v.pos{color:var(--pos)} .kpi .v.hi{color:var(--hi)}
+
+.tabs{display:flex;gap:6px;margin:14px 0 10px;flex-wrap:wrap}
+.tab{padding:6px 13px;border:1px solid var(--line);background:transparent;color:var(--mut);
+     font:11px/1 var(--mono);letter-spacing:.14em;cursor:pointer;border-radius:2px;
+     transition:.12s}
+.tab:hover{color:var(--txt);border-color:var(--line2)}
 .tab[aria-selected=true]{background:var(--panel2);color:var(--hi);border-color:var(--bar2)}
 
-.card{background:var(--panel);border:1px solid var(--line);border-radius:3px;
-      margin-bottom:12px;overflow:hidden}
-.hd{display:flex;align-items:center;gap:10px;padding:14px 16px 12px;
-    background:linear-gradient(180deg,var(--panel2),var(--panel))}
-.crest{width:26px;height:26px;flex:0 0 26px;border-radius:50%;object-fit:contain;
-       background:var(--panel2);display:grid;place-items:center;font-size:10px;
-       font-weight:700;letter-spacing:0;border:1px solid var(--line)}
-.team{font-size:15px;font-weight:600;letter-spacing:.01em;white-space:nowrap;
-      overflow:hidden;text-overflow:ellipsis}
-.vs{color:var(--dim);font-size:11px;padding:0 2px}
-.xg{margin-left:auto;text-align:right;flex:0 0 auto;padding-left:10px}
-.xg .lbl{font-size:9px;color:var(--dim);letter-spacing:.2em}
-.xg .val{font-size:16px;color:var(--hi);font-weight:600}
-.date{padding:0 16px 10px;font-size:10px;color:var(--dim);letter-spacing:.1em}
+.bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.chip{padding:4px 10px;border:1px solid var(--line);background:transparent;color:var(--dim);
+      font:10px/1.4 var(--mono);letter-spacing:.08em;cursor:pointer;border-radius:99px}
+.chip:hover{color:var(--txt)}
+.chip[aria-pressed=true]{background:var(--bar2);color:var(--hi);border-color:var(--bar2)}
+.sep{margin-left:auto;color:var(--dim);font-size:10px;letter-spacing:.1em}
+select{background:var(--panel2);color:var(--txt);border:1px solid var(--line);
+       font:10px var(--mono);padding:4px 8px;border-radius:2px;letter-spacing:.08em}
 
-.rows{padding:4px 16px 14px}
-.row{margin:9px 0}
-.rl{display:flex;align-items:baseline;font-size:12px;margin-bottom:5px}
-.rl .nm{font-weight:600}
-.rl .rt{margin-left:auto;color:var(--mut);font-size:11px;display:flex;gap:8px;align-items:baseline}
+/* ---------- tarjeta ---------- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:4px;
+      margin-bottom:10px;overflow:hidden;transition:.12s}
+.card:hover{border-color:var(--line2)}
+.hd{display:flex;align-items:center;gap:11px;padding:13px 15px 11px;
+    background:linear-gradient(180deg,var(--panel2),transparent)}
+.side{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
+.side.r{justify-content:flex-end}
+.crest{width:28px;height:28px;flex:0 0 28px;border-radius:50%;object-fit:contain;
+       background:#0a130f;border:1px solid var(--line);display:grid;place-items:center;
+       font-size:9px;font-weight:700;letter-spacing:0}
+.team{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vs{color:var(--dim);font-size:10px;letter-spacing:.16em;flex:0 0 auto}
+.sub{display:flex;gap:10px;align-items:center;padding:0 15px 10px;
+     font-size:10px;color:var(--dim);letter-spacing:.06em;flex-wrap:wrap}
+.tag{padding:2px 7px;border:1px solid var(--line);border-radius:99px;font-size:9px;
+     letter-spacing:.1em;color:var(--mut)}
+.tag.good{border-color:var(--bar2);color:var(--hi)}
+
+.rows{padding:2px 15px 13px}
+.row{margin:11px 0}
+.rl{display:flex;align-items:baseline;gap:8px;font-size:12px;margin-bottom:5px}
+.rl .nm{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rl .rt{margin-left:auto;display:flex;gap:10px;align-items:baseline;color:var(--mut);
+        font-size:11px;flex:0 0 auto}
 .rl .p{color:var(--txt);font-size:13px;font-weight:600}
-.d{font-weight:600;min-width:34px;text-align:right}
+.d{font-weight:600;min-width:36px;text-align:right}
 .d.pos{color:var(--pos)} .d.neg{color:var(--neg)} .d.zero{color:var(--dim)}
-.track{position:relative;height:9px;background:#0b1712;border-radius:1px;overflow:hidden}
-.fill{position:absolute;inset:0 auto 0 0;background:var(--bar);border-radius:1px}
-.mk{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--txt);opacity:.85}
+.track{position:relative;height:8px;background:#0a130f;border-radius:1px;overflow:hidden}
+.fill{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--bar2),var(--bar));
+      border-radius:1px}
+.mk{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--txt);opacity:.9}
+.px{display:flex;gap:9px;margin-top:4px;font-size:10px;color:var(--dim);align-items:baseline;
+    flex-wrap:wrap}
+.px b{color:var(--txt);font-weight:600}
+.px .prem{color:var(--pos);font-weight:600}
+.px .r{margin-left:auto}
 
-.sec{border-top:1px solid var(--line);padding:12px 16px}
-.sech{font-size:9px;color:var(--dim);letter-spacing:.24em;margin-bottom:9px}
+.sec{border-top:1px solid var(--line);padding:12px 15px}
+.sech{font-size:9px;color:var(--dim);letter-spacing:.22em;margin-bottom:9px;
+      display:flex;align-items:baseline;gap:8px}
+.sech .q{margin-left:auto;color:var(--dim);letter-spacing:.05em;font-size:9px}
 .sc{display:flex;align-items:center;gap:10px;margin:5px 0;font-size:12px}
-.sc .k{width:34px;color:var(--mut)}
-.sc .t{flex:1;height:8px;background:#0b1712;border-radius:1px;overflow:hidden}
+.sc .k{width:36px;color:var(--mut);font-weight:600}
+.sc .t{flex:1;height:7px;background:#0a130f;border-radius:1px;overflow:hidden}
 .sc .f{height:100%;background:var(--bar2)}
-.sc .v{width:44px;text-align:right;color:var(--txt)}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{font-size:9px;color:var(--dim);letter-spacing:.2em;text-align:left;font-weight:400;
-   padding-bottom:7px}
-th:last-child,td:last-child{text-align:right}
-td{padding:4px 0;border-top:1px solid rgba(28,53,39,.5);color:var(--mut)}
-td:last-child{color:var(--txt);font-weight:600}
-
-.note{border:1px solid var(--line);background:var(--panel);border-radius:3px;
-      padding:12px 14px;font-size:11px;color:var(--mut);line-height:1.65;margin-bottom:12px}
+.sc .v{width:46px;text-align:right;color:var(--txt)}
+.bt{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:12px}
+.bt .n{color:var(--mut);padding:3px 0;border-top:1px solid rgba(27,48,37,.6)}
+.bt .p{color:var(--txt);font-weight:600;text-align:right;padding:3px 0;
+       border-top:1px solid rgba(27,48,37,.6)}
+.xgb{margin-left:auto;text-align:right;flex:0 0 auto;padding-left:8px}
+.xgb .l{font-size:9px;color:var(--dim);letter-spacing:.2em}
+.xgb .v{font-size:15px;color:var(--hi);font-weight:600;line-height:1.2}
+.note{border:1px solid var(--line);background:var(--panel);border-radius:4px;
+      padding:14px 16px;font-size:11.5px;color:var(--mut);line-height:1.75;margin-bottom:10px}
 .note b{color:var(--hi);font-weight:600}
-.empty{padding:40px 16px;text-align:center;color:var(--dim);font-size:12px}
-.foot{margin-top:16px;padding-top:12px;border-top:1px solid var(--line);
-      font-size:10px;color:var(--dim);letter-spacing:.06em;line-height:1.8}
-@media(max-width:520px){.team{font-size:13px}.wrap{padding:10px}}
+.note .ttl{font-size:10px;letter-spacing:.2em;color:var(--dim);margin-bottom:9px}
+.empty{padding:44px 16px;text-align:center;color:var(--dim);font-size:12px;line-height:2}
+.foot{margin-top:20px;padding-top:12px;border-top:1px solid var(--line);
+      font-size:10px;color:var(--dim);letter-spacing:.04em;line-height:1.9}
+.foot b{color:var(--mut)}
+@media(max-width:600px){
+  .team{font-size:12.5px}.wrap{padding:11px}.kpi .v{font-size:14px}
+  .rl .rt{gap:7px}
+}
 </style></head><body>
 <div class="wrap">
   <div class="top">
     <div class="brand">QUANT<b>BET</b></div>
-    <div class="meta" id="stamp">—</div>
+    <div class="stamp" id="stamp">—</div>
   </div>
+  <div class="kpis" id="kpis"></div>
   <div class="tabs" id="tabs"></div>
   <div id="view"></div>
-  <div class="foot">
-    mkt = probabilidad implicita mediana entre casas, desvigueada con Shin<br>
-    <b>la columna del modelo esta vacia a proposito</b>: el modelo v4 dio peso optimo 0 contra el
-    mercado, mostrar su salida seria fingir que sabe algo<br>
-    premio = cuanto paga la mejor casa sobre la mediana. Es lo unico capturable sin modelo<br>
-    <span style="color:var(--neg)">niguna cifra de esta pantalla esta validada como edge capturable</span>
-  </div>
+  <div class="foot" id="foot"></div>
 </div>
 <script src="data.js"></script>
 <script>
-const DATA = window.QB_DATA || {generado:null, partidos:[]};
+const D = window.QB_DATA || {generado:null, partidos:[], ligas:[]};
+const P = D.partidos || [];
 
-const pct = v => (v*100).toFixed(0)+'%';
-const cents = v => { const c = Math.round(v*100);
-  return (c>0?'+':'')+c+'¢'; };
+const pct = v => v==null?'—':(v*100).toFixed(0)+'%';
+const cents = v => (v>0?'+':'')+Math.round(v*100)+'¢';
+const nice = k => String(k).replace(/^soccer_/,'').replace(/_/g,' ').toUpperCase();
+
+let liga = 'TODAS', orden = 'fecha', activo = 'futbol';
 
 function crest(t){
-  if(t.crest) return `<img class="crest" src="${t.crest}" alt="" onerror="
-    this.outerHTML='<div class=crest style=color:${t.color||'#4ea87c'}>${(t.abbr||t.name.slice(0,3)).toUpperCase()}</div>'">`;
-  return `<div class="crest" style="color:${t.color||'#4ea87c'}">${(t.abbr||t.name.slice(0,3)).toUpperCase()}</div>`;
+  const mono = `<div class="crest" style="color:${t.color||'#4ea87c'}">${t.abbr||''}</div>`;
+  if(!t.crest) return mono;
+  return `<img class="crest" src="${t.crest}" alt="" loading="lazy"
+    onerror="this.replaceWith(Object.assign(document.createElement('div'),
+      {className:'crest',textContent:'${(t.abbr||'').replace(/'/g,'')}',
+       style:'color:${t.color||'#4ea87c'}'}))">`;
 }
 
 function outcomeRow(o){
   const d = (o.model!=null && o.mkt!=null) ? o.model-o.mkt : null;
   const cls = d==null?'zero':(Math.abs(d)<0.005?'zero':(d>0?'pos':'neg'));
-  const ancho = (o.model!=null?o.model:o.mkt)*100;
-  // premio: lo unico capturable sin modelo -- buscar mejor precio, no predecir
-  const prem = o.premio!=null && o.premio>0.01
-    ? `<span style="color:var(--pos)">+${(o.premio*100).toFixed(1)}%</span>` : '';
+  const ancho = ((o.model!=null?o.model:o.mkt)||0)*100;
   return `<div class="row">
     <div class="rl"><span class="nm">${o.name}</span>
       <span class="rt">
         ${o.model!=null?`<span class="p">${pct(o.model)}</span>`:''}
-        <span class="${o.model!=null?'':'p'}">mkt ${o.mkt!=null?pct(o.mkt):'—'}</span>
+        <span class="${o.model!=null?'':'p'}">mkt ${pct(o.mkt)}</span>
         ${d!=null?`<span class="d ${cls}">${cents(d)}</span>`:''}
       </span></div>
     <div class="track"><div class="fill" style="width:${Math.min(100,ancho)}%"></div>
       ${(o.model!=null&&o.mkt!=null)?`<div class="mk" style="left:calc(${Math.min(100,o.mkt*100)}% - 1px)"></div>`:''}
     </div>
-    ${o.mejor_cuota?`<div style="font-size:10px;color:var(--dim);margin-top:3px;
-      display:flex;gap:8px"><span>mejor <b style="color:var(--txt)">${o.mejor_cuota}</b>
-      en ${o.mejor_casa}</span>${prem}
-      <span style="margin-left:auto">${o.n_casas} casas · disp ${o.dispersion}</span></div>`:''}
+    ${o.mejor_cuota?`<div class="px">
+      <span>mejor <b>${o.mejor_cuota}</b> · ${o.mejor_casa}</span>
+      ${o.premio>0.01?`<span class="prem">+${(o.premio*100).toFixed(1)}%</span>`:''}
+      <span class="r">${o.n_casas} casas · disp ${o.dispersion}</span></div>`:''}
   </div>`;
 }
 
-function matchCard(m){
-  const mx = Math.max(...(m.scores||[{p:1}]).map(s=>s.p));
+function card(m){
+  const alto = m.max_premio!=null && m.max_premio>=0.05;
   return `<div class="card">
     <div class="hd">
-      ${crest(m.home)}<span class="team">${m.home.name}</span>
-      <span class="vs">vs</span>
-      ${crest(m.away)}<span class="team">${m.away.name}</span>
-      ${m.xg?`<div class="xg"><div class="lbl">XG</div>
-        <div class="val">${m.xg[0].toFixed(2)}-${m.xg[1].toFixed(2)}</div></div>`:''}
+      <div class="side">${crest(m.home)}<span class="team">${m.home.name}</span></div>
+      <span class="vs">VS</span>
+      <div class="side r"><span class="team">${m.away.name}</span>${crest(m.away)}</div>
+      ${m.xg?`<div class="xgb"><div class="l">XG MKT</div>
+        <div class="v">${m.xg[0].toFixed(2)}-${m.xg[1].toFixed(2)}</div></div>`:''}
     </div>
-    <div class="date">${m.date||''}${m.league?' · '+m.league:''}</div>
+    <div class="sub">
+      <span>${m.date||''}</span><span class="tag">${nice(m.league)}</span>
+      ${m.max_premio!=null?`<span class="tag ${alto?'good':''}">mejor precio +${(m.max_premio*100).toFixed(1)}%</span>`:''}
+    </div>
     <div class="rows">${(m.outcomes||[]).map(outcomeRow).join('')}</div>
-    ${m.scores?.length?`<div class="sec"><div class="sech">LIKELIEST SCORES</div>
-      ${m.scores.map(s=>`<div class="sc"><span class="k">${s.s}</span>
-        <span class="t"><span class="f" style="width:${s.p/mx*100}%"></span></span>
-        <span class="v">${(s.p*100).toFixed(1)}%</span></div>`).join('')}</div>`:''}
-    ${m.bets?.length?`<div class="sec"><table>
-      <tr><th>BET</th><th>MODEL</th></tr>
-      ${m.bets.map(b=>`<tr><td>${b.name}</td><td>${pct(b.p)}</td></tr>`).join('')}
-    </table></div>`:''}
+    ${m.scores?.length?`<div class="sec">
+      <div class="sech">MARCADORES MAS PROBABLES
+        <span class="q">segun el mercado · ${m.n_totales||0} lineas de totales</span></div>
+      ${(()=>{const mx=Math.max(...m.scores.map(x=>x.p));
+        return m.scores.map(x=>`<div class="sc"><span class="k">${x.s}</span>
+          <span class="t"><span class="f" style="width:${x.p/mx*100}%"></span></span>
+          <span class="v">${(x.p*100).toFixed(1)}%</span></div>`).join('')})()}
+    </div>`:''}
+    ${m.bets?.length?`<div class="sec">
+      <div class="sech">MERCADOS DERIVADOS<span class="q">probabilidad del mercado</span></div>
+      <div class="bt">${m.bets.map(b=>
+        `<span class="n">${b.name}</span><span class="p">${(b.p*100).toFixed(0)}%</span>`).join('')}</div>
+    </div>`:''}
   </div>`;
 }
 
-const TABS = [
-  {id:'futbol', lbl:'FUTBOL'},
-  {id:'caballos', lbl:'CARRERAS'},
-  {id:'salud',  lbl:'SALUD DEL SISTEMA'},
-];
-let activo = 'futbol';
+const TABS=[{id:'futbol',lbl:'FUTBOL'},{id:'caballos',lbl:'CARRERAS'},{id:'salud',lbl:'SALUD'}];
+
+function futbol(){
+  const ligas = ['TODAS', ...(D.ligas||[])];
+  let ms = liga==='TODAS' ? P.slice() : P.filter(m=>m.league===liga);
+  if(orden==='premio') ms.sort((a,b)=>(b.max_premio??-1)-(a.max_premio??-1));
+  else if(orden==='disp') ms.sort((a,b)=>(b.max_disp??-1)-(a.max_disp??-1));
+  else ms.sort((a,b)=>String(a.ts).localeCompare(String(b.ts)));
+
+  const bar = `<div class="bar">
+    ${ligas.map(l=>`<button class="chip" aria-pressed="${l===liga}" data-l="${l}">${l==='TODAS'?'TODAS':nice(l)}</button>`).join('')}
+    <span class="sep">ordenar
+      <select id="ord">
+        <option value="fecha"${orden==='fecha'?' selected':''}>por fecha</option>
+        <option value="premio"${orden==='premio'?' selected':''}>por mejor precio</option>
+        <option value="disp"${orden==='disp'?' selected':''}>por dispersion</option>
+      </select></span></div>`;
+
+  return bar + (ms.length ? ms.map(card).join('')
+    : `<div class="card"><div class="empty">Sin partidos.<br>
+       <b>python -m src.app.export_app_data --ligas top5</b></div></div>`);
+}
 
 function render(){
-  document.getElementById('stamp').textContent = DATA.generado || 'sin datos';
+  document.getElementById('stamp').textContent = D.generado || 'sin datos';
+
+  const conPremio = P.flatMap(m=>m.outcomes||[]).filter(o=>o.premio!=null);
+  const medio = conPremio.length ? conPremio.reduce((a,o)=>a+o.premio,0)/conPremio.length : null;
+  const s = D.salud||{};
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi"><div class="k">PARTIDOS</div><div class="v">${P.length}</div></div>
+    <div class="kpi"><div class="k">LIGAS</div><div class="v">${(D.ligas||[]).length}</div></div>
+    <div class="kpi"><div class="k">PREMIO MEDIO</div>
+      <div class="v hi">${medio!=null?'+'+(medio*100).toFixed(1)+'%':'—'}</div></div>
+    <div class="kpi"><div class="k">CLV MEDIDO (n=${s.n??'—'})</div>
+      <div class="v ${(s.clv||'').startsWith('-')?'neg':''}">${s.clv??'—'}</div></div>`;
+
   document.getElementById('tabs').innerHTML = TABS.map(t=>
-    `<button class="tab" role="tab" aria-selected="${t.id===activo}" data-t="${t.id}">${t.lbl}</button>`).join('');
+    `<button class="tab" aria-selected="${t.id===activo}" data-t="${t.id}">${t.lbl}</button>`).join('');
+
   const v = document.getElementById('view');
-  if(activo==='futbol'){
-    const ms = DATA.partidos||[];
-    v.innerHTML = ms.length ? ms.map(matchCard).join('')
-      : `<div class="card"><div class="empty">Sin partidos cargados.<br>
-         Corre <b>export_app_data.py</b> para generar data.js</div></div>`;
-  } else if(activo==='caballos'){
-    v.innerHTML = `<div class="note"><b>Pendiente.</b> Mercado pari-mutuel: la cuota la fija
-      el publico, no un formador de precios. Es la unica estructura donde el blend
-      con modelo propio dio peso distinto de cero historicamente (Benter, HKJC).<br><br>
-      Requiere fuente de datos distinta a The Odds API.</div>`;
-  } else {
-    const s = DATA.salud||{};
-    v.innerHTML = `<div class="note">
-      <b>VEREDICTO DEL EXPERIMENTO CLV</b> — n=${s.n??105} apuestas independientes<br><br>
-      movimiento Pinnacle &nbsp; <span style="color:var(--neg)">${s.mov??'-5.06%'}</span>
-        &nbsp; t=${s.t_mov??'-3.49'}<br>
-      CLV medio &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${s.clv??'+0.06%'}<br><br>
-      Tesis cerradas: modelo v4 vs mercado · parlays largos · arbitraje sharp-vs-blanda.<br>
-      <b>Edge capturable demostrado: cero.</b> Cualquier cifra de la pestaña FUTBOL es
-      opinion del modelo, no ventaja validada.</div>`;
-  }
-  document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{activo=b.dataset.t;render();});
+  if(activo==='futbol') v.innerHTML = futbol();
+  else if(activo==='caballos') v.innerHTML = `<div class="note">
+    <div class="ttl">PENDIENTE</div>
+    Mercado <b>pari-mutuel</b>: la cuota la fija la distribucion del dinero del publico,
+    no un formador de precios profesional. Es la unica estructura donde historicamente
+    un modelo propio tuvo peso distinto de cero contra el mercado (Benter, HKJC).<br><br>
+    Requiere una fuente de datos distinta de The Odds API.</div>`;
+  else v.innerHTML = `<div class="note">
+    <div class="ttl">VEREDICTO DEL EXPERIMENTO CLV · n=${s.n??105} APUESTAS INDEPENDIENTES</div>
+    movimiento de Pinnacle &nbsp;<b style="color:var(--neg)">${s.mov??'-5.06%'}</b>&nbsp; t=${s.t_mov??'-3.49'}<br>
+    CLV medio &nbsp;<b>${s.clv??'+0.06%'}</b><br><br>
+    <b>Tres tesis cerradas:</b> el modelo v4 contra el mercado · los parlays largos ·
+    el arbitraje sharp-vs-blanda.<br><br>
+    <b>Edge capturable demostrado: cero.</b> Lo unico real de la pestaña FUTBOL es
+    el <b>premio por mejor precio</b> — eso no requiere predecir nada, es buscar
+    quien paga mas por la misma apuesta.</div>`;
+
+  document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{activo=b.dataset.t;render()});
+  document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{liga=b.dataset.l;render()});
+  const o=document.getElementById('ord'); if(o) o.onchange=e=>{orden=e.target.value;render()};
+
+  document.getElementById('foot').innerHTML =
+    `<b>mkt</b> = probabilidad implicita mediana entre casas, desvigueada con Shin<br>
+     <b>la columna del modelo esta vacia a proposito</b> — el v4 dio peso optimo 0 contra el
+     mercado; mostrarla seria fingir que sabe algo<br>
+     <b>premio</b> = cuanto paga la mejor casa sobre la mediana. Es lo unico capturable hoy<br>
+     <b>disp</b> = desacuerdo entre casas sobre ese resultado<br>
+     <b>xg mkt / marcadores / mercados derivados</b> = el par de goles esperados que mejor
+     reproduce los precios 1X2 y de totales bajo Poisson independiente. Es el mercado
+     traducido, <b>no una prediccion nuestra</b>`;
 }
 render();
 </script></body></html>

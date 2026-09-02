@@ -40,6 +40,19 @@ import pandas as pd
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 from src.ingestion.theoddsapi_live_odds_loader import fetch_upcoming_odds
 from src.evaluation.soft_book_edge import (devig_shin, EXCLUDED_BOOKS, OPERATOR_GROUP)
+from src.app.crests import resolver as resolver_escudos
+from src.app.poisson_mercado import ajustar, derivar
+from src.ingestion.theoddsapi_live_odds_loader import MARKETS_CON_TOTALES
+
+# Atajos para no tener que escribir el sport_key completo.
+GRUPOS = {
+    "top5": ["soccer_epl", "soccer_spain_la_liga", "soccer_italy_serie_a",
+             "soccer_germany_bundesliga", "soccer_france_ligue_one"],
+    "latam": ["soccer_argentina_primera_division", "soccer_brazil_campeonato",
+              "soccer_chile_campeonato", "soccer_mexico_ligamx",
+              "soccer_brazil_serie_b"],
+    "todo": None,   # se resuelve con discover_active
+}
 
 APP_DIR = Path(__file__).resolve().parent.parent.parent / "app"
 MIN_CASAS = 4
@@ -59,7 +72,30 @@ def _abbr(nombre: str) -> str:
     return nombre[:3].upper()
 
 
-def construir_partido(grp: pd.DataFrame) -> dict | None:
+def _totales_consenso(tot: pd.DataFrame) -> dict:
+    """{linea: prob_over} mediana entre casas, desvigueada por casa.
+
+    Se desviguea el par Over/Under de CADA casa por separado y despues se
+    toma la mediana. Al reves (mediana de cuotas y despues desvig) mezclaria
+    margenes distintos y sesgaria el resultado."""
+    salida = {}
+    for linea, g in tot.groupby("outcome_point"):
+        probs = []
+        for _, gg in g.groupby("op"):
+            pr = dict(zip(gg["outcome_name"], gg["outcome_price_decimal"]))
+            if len(pr) != 2 or any(not v or v <= 1 for v in pr.values()):
+                continue
+            inv = {k: 1.0 / v for k, v in pr.items()}
+            tot_inv = sum(inv.values())
+            over = next((k for k in inv if str(k).lower().startswith("over")), None)
+            if over and tot_inv > 0:
+                probs.append(inv[over] / tot_inv)
+        if len(probs) >= MIN_CASAS:
+            salida[float(linea)] = float(np.median(probs))
+    return salida
+
+
+def construir_partido(grp: pd.DataFrame, tot: pd.DataFrame | None = None) -> dict | None:
     grp = grp.copy()
     grp["op"] = grp["bookmaker"].map(lambda b: OPERATOR_GROUP.get(b, b))
     grp = grp.drop_duplicates(subset=["op", "outcome_name"])
@@ -119,37 +155,96 @@ def construir_partido(grp: pd.DataFrame) -> dict | None:
     except Exception:
         fecha = ""
 
+    # --- traduccion del mercado a grilla de marcadores ---
+    #     NO es prediccion: es el precio del mercado reexpresado.
+    extra = {}
+    try:
+        pm = {o["name"]: o["mkt"] for o in outcomes}
+        ph = next((v for k, v in pm.items() if k.endswith("win") and k != "empate"), None)
+        pa_k = [k for k in pm if k.endswith("win")]
+        if len(pa_k) == 2 and "empate" in pm:
+            ph, pa = pm[pa_k[0]], pm[pa_k[1]]
+            totales = _totales_consenso(tot) if tot is not None and not tot.empty else {}
+            lh, la, err = ajustar(ph, pm["empate"], pa, totales)
+            if err < 0.05:          # ajuste malo -> no se muestra nada
+                extra = derivar(lh, la)
+                extra["ajuste_err"] = round(err, 4)
+                extra["n_totales"] = len(totales)
+    except Exception:
+        extra = {}
+
+    premios = [o["premio"] for o in outcomes if o["premio"] is not None]
     return {
         "league": grp["league"].iloc[0],
         "date": fecha,
+        "ts": str(grp["commence_time"].iloc[0]),
         "home": {"name": home, "abbr": _abbr(home), "color": COLORES.get(home, "#4ea87c")},
         "away": {"name": away, "abbr": _abbr(away), "color": COLORES.get(away, "#4ea87c")},
         "outcomes": outcomes,
+        "max_premio": round(max(premios), 4) if premios else None,
+        "max_disp": round(max(o["dispersion"] for o in outcomes), 4),
+        **extra,
     }
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--liga", required=True)
-    ap.add_argument("--max-partidos", type=int, default=20)
+    ap.add_argument("--ligas", default="top5",
+                    help="claves separadas por coma, o un grupo: top5 / latam / todo")
+    ap.add_argument("--liga", default=None, help="alias de --ligas para una sola")
+    ap.add_argument("--max-partidos", type=int, default=200)
+    ap.add_argument("--sin-escudos", action="store_true",
+                    help="salta la resolucion de escudos (no toca la red)")
     args = ap.parse_args()
 
-    raw = fetch_upcoming_odds(args.liga)
-    if raw.empty:
-        print("Feed vacio.")
-        return
-    raw = raw[raw["market"] == "h2h"]
+    pedido = args.liga or args.ligas
+    if pedido in GRUPOS:
+        if pedido == "todo":
+            from src.ingestion.theoddsapi_live_odds_loader import discover_active
+            claves = list(discover_active(deportes=("futbol",)).values())
+        else:
+            claves = GRUPOS[pedido]
+    else:
+        claves = [k.strip() for k in pedido.split(",") if k.strip()]
+
+    print(f"Exportando {len(claves)} competicion(es) (~{len(claves)*6} creditos).\n")
 
     partidos = []
-    for _, grp in raw.groupby("event_id"):
-        p = construir_partido(grp)
-        if p:
-            partidos.append(p)
-    partidos.sort(key=lambda p: p["date"])
+    for k in claves:
+        try:
+            raw = fetch_upcoming_odds(k, markets=MARKETS_CON_TOTALES)
+        except Exception as e:
+            print(f"[ERROR] {k}: {e}")
+            continue
+        if raw.empty:
+            continue
+        raw = raw.copy()
+        raw["op"] = raw["bookmaker"].map(lambda b: OPERATOR_GROUP.get(b, b))
+        h2h = raw[raw["market"] == "h2h"]
+        tot_all = raw[raw["market"] == "totals"]
+        antes = len(partidos)
+        for ev, grp in h2h.groupby("event_id"):
+            p = construir_partido(grp, tot_all[tot_all["event_id"] == ev])
+            if p:
+                partidos.append(p)
+        print(f"   {k:<45} {len(partidos)-antes:>3} partidos")
+
+    partidos.sort(key=lambda p: p["ts"])
     partidos = partidos[:args.max_partidos]
 
+    # --- escudos: una consulta por equipo en la vida del proyecto ---
+    if partidos and not args.sin_escudos:
+        nombres = [t["name"] for p in partidos for t in (p["home"], p["away"])]
+        escudos = resolver_escudos(nombres)
+        for p in partidos:
+            for lado in ("home", "away"):
+                u = escudos.get(p[lado]["name"])
+                if u:
+                    p[lado]["crest"] = u
+
     data = {
-        "generado": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC") + f" · {args.liga}",
+        "generado": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        "ligas": sorted({p["league"] for p in partidos}),
         "partidos": partidos,
         "salud": {"n": 105, "mov": "-5.06%", "t_mov": "-3.49", "clv": "+0.06%"},
     }
@@ -159,13 +254,22 @@ def main():
         "// Generado por src/app/export_app_data.py -- no editar a mano.\n"
         "window.QB_DATA = " + json.dumps(data, ensure_ascii=False, indent=2) + ";\n",
         encoding="utf-8")
-    print(f"{len(partidos)} partidos exportados -> {destino}")
-    if partidos:
-        p = partidos[0]
-        print(f"\nEjemplo: {p['home']['name']} vs {p['away']['name']}")
-        for o in p["outcomes"]:
-            print(f"   {o['name']:<14} consenso {o['mkt']:>6.1%}  disp {o['dispersion']:.4f}  "
-                  f"mejor {o['mejor_cuota']} en {o['mejor_casa']} (+{o['premio']:.1%})")
+    print(f"\n{len(partidos)} partidos de {len(data['ligas'])} ligas -> {destino}")
+    con_escudo = sum(1 for p in partidos for l in ("home","away") if p[l].get("crest"))
+    con_grilla = sum(1 for p in partidos if p.get("scores"))
+    print(f"escudos resueltos : {con_escudo}/{len(partidos)*2}")
+    print(f"grilla de marcadores: {con_grilla}/{len(partidos)} partidos")
+
+    mejores = sorted([p for p in partidos if p["max_premio"]],
+                     key=lambda p: -p["max_premio"])[:5]
+    if mejores:
+        print("\nMayor premio por buscar mejor precio (NO es edge, es buscar mejor precio):")
+        for p in mejores:
+            o = max([o for o in p["outcomes"] if o["premio"] is not None],
+                    key=lambda o: o["premio"])
+            print(f"   +{o['premio']:>5.1%}  {p['home']['name'][:18]:<19} v "
+                  f"{p['away']['name'][:18]:<19} {o['name']:<12} "
+                  f"{o['mejor_cuota']} en {o['mejor_casa']}")
 
 
 if __name__ == "__main__":
